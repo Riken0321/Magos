@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "雙手抱胸",
+    "duration": 1,
+    "image_path": "action_groups\\雙手抱胸.png",
+    "joint_angles": [
+      615,
+      274,
+      299,
+      425,
+      752,
+      736,
+      518,
+      1000,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

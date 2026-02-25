@@ -1,0 +1,23 @@
+[
+    {
+        "action_name": "\u62db\u5f0f\u4e00.1",
+        "duration": 1.0,
+        "image_path": "action_groups\\\u62db\u5f0f\u4e00.1.png",
+        "joint_angles": [
+            636,
+            230,
+            353,
+            476,
+            760,
+            659,
+            518,
+            1000,
+            591,
+            591
+        ],
+        "switch_data": 1,
+        "sync": false,
+        "type": "motion",
+        "voice": ""
+    }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "回復位置",
+    "duration": 1,
+    "image_path": "action_groups\\回復位置.png",
+    "joint_angles": [
+      569,
+      324,
+      417,
+      468,
+      706,
+      622,
+      518,
+      1000,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

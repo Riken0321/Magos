@@ -1,0 +1,6 @@
+{
+    "codingcopilot.enableCompletionLanguage": {
+        "scmInput": false
+    },
+    "liveServer.settings.port": 5501
+}

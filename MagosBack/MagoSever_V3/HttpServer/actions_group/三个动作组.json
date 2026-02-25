@@ -1,0 +1,338 @@
+[
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      477,
+      480,
+      637,
+      583,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      477,
+      480,
+      637,
+      808,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      477,
+      480,
+      506,
+      808,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      477,
+      480,
+      646,
+      808,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      477,
+      480,
+      500,
+      808,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      477,
+      480,
+      649,
+      576,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      318,
+      480,
+      649,
+      576,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      587,
+      318,
+      480,
+      649,
+      576,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      421,
+      318,
+      480,
+      649,
+      576,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      596,
+      318,
+      480,
+      649,
+      576,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      414,
+      492,
+      480,
+      649,
+      576,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      410,
+      484,
+      480,
+      640,
+      570,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      578,
+      303,
+      480,
+      483,
+      759,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      403,
+      303,
+      480,
+      637,
+      759,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": "你好你好"
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      571,
+      303,
+      480,
+      518,
+      759,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": "我是Magos"
+  },
+  {
+    "action_name": "\u52a8\u4f5c\u540d",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u52a8\u4f5c\u540d.png",
+    "joint_angles": [
+      540,
+      414,
+      303,
+      480,
+      649,
+      759,
+      745,
+      417,
+      500.0,
+      500.0
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

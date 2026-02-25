@@ -1,0 +1,33 @@
+{
+  "name": "blockly",
+  "version": "1.0.0",
+  "description": "A sample app using Blockly",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --mode production",
+    "start": "webpack serve --open --mode development"
+  },
+  "keywords": [
+    "blockly"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.16",
+    "css-loader": "^6.7.1",
+    "html-webpack-plugin": "^5.5.0",
+    "source-map-loader": "^4.0.1",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.76.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.11.1"
+  },
+  "dependencies": {
+    "@blockly/theme-dark": "^7.0.12",
+    "blockly": "^11.0.0",
+    "copy-webpack-plugin": "^13.0.1",
+    "lw_firewords": "^1.0.3"
+  }
+}

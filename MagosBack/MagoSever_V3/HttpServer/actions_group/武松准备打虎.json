@@ -1,0 +1,65 @@
+[
+  {
+    "action_name": "\u521d\u59cb",
+    "duration": 1,
+    "image_path": "action_groups\\\u521d\u59cb.png",
+    "joint_angles": [
+      481,
+      452,
+      429,
+      505,
+      592,
+      597,
+      745,
+      417,
+      514,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b66\u677e\u51c6\u5907\u6253\u864e1",
+    "duration": 1,
+    "image_path": "action_groups\\\u6b66\u677e\u51c6\u5907\u6253\u864e1.png",
+    "joint_angles": [
+      641,
+      582,
+      251,
+      338,
+      488,
+      350,
+      745,
+      417,
+      515,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b66\u677e\u51c6\u5907\u6253\u864e2",
+    "duration": 1,
+    "image_path": "action_groups\\\u6b66\u677e\u51c6\u5907\u6253\u864e2.png",
+    "joint_angles": [
+      468,
+      567,
+      652,
+      336,
+      522,
+      507,
+      745,
+      417,
+      515,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

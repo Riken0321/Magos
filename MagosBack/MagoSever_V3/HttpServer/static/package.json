@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@mit-app-inventor/blockly-plugin-workspace-multiselect": "^1.0.2"
+  }
+}

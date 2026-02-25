@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "\u521d\u59cb",
+    "duration": 1,
+    "image_path": "action_groups\\\u521d\u59cb.png",
+    "joint_angles": [
+      481,
+      452,
+      429,
+      505,
+      592,
+      597,
+      745,
+      417,
+      514,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

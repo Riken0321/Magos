@@ -1,0 +1,279 @@
+﻿<!doctype html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <title>Magos Blockly</title>
+  </head>
+
+  <body class="Light" data-status-poll-ms="1000">
+
+    <div id="Blocklyeditor">
+      <div id="TopBar">
+        <div id="TopContainer">
+          <div id="Logo">
+            <div id="MagosIcon"></div>
+            <div id="MagosMasterIcon"></div>
+          </div>
+          <div id="Navigation">
+            <div id="BtnConnectPanel">連接</div>
+            <div id="BtnInterfacePanel">界面</div>
+            <div id="BtnWindowPanel">視窗</div>
+            <div id="BtnExportPanel">導出</div>
+            <div id="BtnImportPanel">導入</div>
+            <div id="BtnBatteryDisplayPanel">電量顯示</div>
+            <div id="BtnNetworkPanel">網絡</div>
+            <div id="BtnHelpPanel">帮助</div>
+            <div id="battery_config_menu" role="menu" aria-hidden="true" style="display:none">
+              <button role="menuitem" class="battery-config-item" data-value="1">顯示</button>
+              <button role="menuitem" class="battery-config-item" data-value="0">不顯示</button>
+            </div>
+            <div id="BtnBattery"> 電量：--</div>
+          </div>
+        </div>
+      </div>
+      <div id="MiddleContent">
+        <div id="blocklyDiv"></div>
+        <div id="BlocklyCornerControls">
+            <button id="BtnBlocklyZoomIn" class="blockly-control-btn"></button>
+            <button id="BtnBlocklyZoomOut" class="blockly-control-btn"></button>
+            <button id="BtnBlocklyTrash" class="blockly-control-btn"></button>
+        </div>
+        <div id="CodePanel">
+          <div id="CodePanelTitle">
+            <span id="CodePanelTitleText">代碼面板</span>
+            <button id="BtnCloseCodePanel" type="button" aria-label="Close">×</button>
+          </div>
+          <div id="CodePanelText">
+            <div id="CodeText">
+              sadadasdasdsadsaaaaaaaaaaaaaaaaaaaaaaa
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="BottomBar">
+        <div id="MinigameContainer" style="visibility: visible;">
+          <div id="GamesTitle">更多遊戲</div>
+          <div id="Games">
+            <a href="to_shudu">
+              <button id="BtnSudoku">
+                <div id="SudokuIcon"></div>
+              </button>
+            </a>
+            <a href="to_habcam">
+              <div id="BtnVisual">
+              </div>
+            </a>
+          </div>
+        </div>
+        <div id="FunctionKeys">
+          <button id="BtnReturn"></button>
+          <button id="BtnUndo"></button>
+          <button id="BtnPlay"></button>
+          <button id="BtnReset"></button>
+          <button id="BtnClear"></button>
+        </div>
+        <div id="MusicIcon">
+          <button id="BtnMusic"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelConnect" style="visibility: hidden;">
+      <div id="PanelConnectTop">連接</div>
+      <div id="PanelConnectMid">
+        <div id="ContainerDevice" class="Connect">
+          <div id="ParagraphScan">掃描設備</div>
+          <div id="PanelStateBLE">
+            <div id="StateBLEIcon"></div>
+            <div id="StateBLE">未連接</div>
+          </div>
+        </div>
+        <div id="ContainerScan">
+          <button id="BtnDeviceScan"></button>
+          <button id="BtnDeviceSelectLeft"></button>
+          <select id="DeviceList">
+            <option value disabled selected>选择蓝牙设备</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+          <button id="BtnDeviceSelectRight"></button>
+        </div>
+        <div id="ContainerConnect">
+          <div id="ParagraphConnect">連接設備</div>
+          <button id="BtnConnect">確定</button>
+        </div>
+        <div id="ContainerDisConnect">
+          <div id="ParagraphDisConnect">終止連接</div>
+          <button id="BtnDisConnect">確定</button>
+        </div>
+        <div id="ContainerRename">
+          <div id="ParagraphRename">更改名称</div>
+          <button id="BtnRename">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelInterface" style="visibility: hidden;">
+      <div id="PanelInterfaceTop">界面</div>
+      <div id="PanelInterfaceMid">
+        <div id="ContainerLanguage">
+          <div id="ParagraphLanguage">語言選擇</div>
+          <button id="BtnLanguageSelectLeft"></button>
+          <select id="LanguageList">
+            <option value="hant">繁体中文</option>
+            <option value="hans">简体中文</option>
+            <option value="en">English</option>
+          </select>
+          <button id="BtnLanguageSelectRight"></button>
+        </div>
+        <div id="ContainerTheme">
+          <div id="ParagraphTheme">主題選擇</div>
+          <button id="BtnThemeSelectLeft"></button>
+          <select id="ThemeList">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <button id="BtnThemeSelectRight"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelWindow" style="visibility: hidden;">
+      <div id="PanelWindowTop">視窗</div>
+      <div id="PanelWindowMid">
+        <div id="ContainerCodePanel">
+          <div id="ParagraphCodePanel">代碼面板</div>
+          <button id="BtnCodePanelSelectLeft"></button>
+          <select id="CodePanelList">
+            <option value="No">OFF</option>
+            <option value="Yes">ON</option>
+          </select>
+          <button id="BtnCodePanelSelectRight"></button>
+        </div>
+        <div id="ContainerMusicPanel">
+          <div id="ParagraphMusicPanel">尋找音樂</div>
+          <button id="BtnMusicPanelSelectLeft"></button>
+          <select id="MusicPanelList">
+            <option value="No">OFF</option>
+            <option value="Yes">ON</option>
+          </select>
+          <button id="BtnMusicPanelSelectRight"></button>
+        </div>
+        <div id="ContainerGamesPanel">
+          <div id="ParagraphGmaesPanel">更多游戲</div>
+          <button id="BtnGamesPanelSelectLeft"></button>
+          <select id="GamesPanelList">
+            <option value="Yes">ON</option>
+            <option value="No">OFF</option>
+          </select>
+          <button id="BtnGamesPanelSelectRight"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelNetwork" style="visibility: hidden;">
+      <div id="PanelNetworkTop">網絡</div>
+      <div id="PanelNetworkMid">
+        <div id="ContainerNetwork">
+          <div id="ParagraphNetworkRestart">重启网络</div>
+          <button id="BtnNetworkRestart">重启</button>
+        </div>
+        <div id="ContainerNetworkLogin">
+          <div id="ParagraphNetworkLogin">网络登录</div>
+          <button id="BtnNetworkLogin">登录</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelExpore" style="visibility: hidden;">
+      <div id="PanelExporeTop">導出</div>
+      <div id="PanelExporeMid">
+        <div id="ContainerExport">
+          <div id="ParagraphExport">導出程式</div>
+          <button id="BtnExport">確定</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelImport" style="visibility: hidden;">
+      <div id="PanelImportTop">匯入</div>
+      <div id="PanelImportMid">
+        <div id="ContainerImport">
+          <div id="ParagraphImport">匯入程式</div>
+          <button id="BtnImport">確定</button>
+          <input type="file" id="ImportFileInput" accept=".py" style="display: none;">
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelHelp" style="visibility: hidden;">
+      <div id="PanelHelpTop">帮助</div>
+      <div id="PanelHelpMid">
+        <div id="ContainerHelp">
+          <div id="ParagraphHelp">获取帮助</div>
+          <button id="BtnGetHelp">获取帮助</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="PanelMusic" style="visibility: hidden;">
+      <div id="PanelMusicTop">
+        <input type="text" id="MusicInput" placeholder="|搜索音樂">
+      </div>
+      <div id="PanelMusicMid">
+        <div id="MusicValue">Asdasdasd</div>
+        <div id="MusicValue">B</div>
+        <div id="MusicValue">C</div>
+        <div id="MusicValue">Asdasdasd</div>
+        <div id="MusicValue">B</div>
+        <div id="MusicValue">C</div>
+        <div id="MusicValue">Asdasdasd</div>
+        <div id="MusicValue">B</div>
+        <div id="MusicValue">C</div>
+        <div id="MusicValue">Asdasdasd</div>
+        <div id="MusicValue">B</div>
+        <div id="MusicValue">C</div>
+      </div>
+      <div id="PanelMusicBottom">
+        <div id="ContainerMusicTitle">
+          <div id="ParagraphMusicTitle">音樂播放清單</div>
+          <button id="Delete_Music">Delete</button>
+          <button id="Upload_Music">Upload</button>
+          <input type="file" id="Upload_Music_Input" accept="audio/*">
+        </div>
+        <div id="ContainerMusic">
+          <div id="ParagraphSongTitle">第一首（三隻小豬粵劇）</div>
+          <div id="ParagraphSongArtist"></div>
+        </div>
+        <div id="ContainerMusicOption">
+          <button id="BtnMusicLeft"></button>
+          <button id="BtnMusicPlay"></button>
+          <button id="BtnMusicRight"></button>
+          <button id="BtnMusicOrder"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="Toast"></div>
+    
+    <div id="DialogNetworkLogin" style="display:none">
+      <div id="DialogNetworkLoginMask"></div>
+      <div id="DialogNetworkLoginCard">
+        <div id="DialogNetworkLoginTitle">网络登录</div>
+        <div class="login-row">
+          <div id="NetworkAccountLabel">账号：</div>
+          <input id="NetworkLoginAccountInput" type="text" maxlength="64" />
+        </div>
+        <div class="login-row">
+          <div id="NetworkPasswordLabel">密码：</div>
+          <input id="NetworkLoginPasswordInput" type="password" maxlength="128" />
+        </div>
+        <button id="BtnNetworkLoginConfirm">确认</button>
+      </div>
+    </div>
+  </body>
+</html>
+
+

@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "雙手抬前",
+    "duration": 1.0,
+    "image_path": "action_groups\\雙手抬前.png",
+    "joint_angles": [
+      493,
+      355,
+      210,
+      443,
+      545,
+      870,
+      518,
+      1000,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

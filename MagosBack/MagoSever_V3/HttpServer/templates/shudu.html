@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数独游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        danger: '#EF4444',
+                        neutral: '#F3F4F6',
+                        'neutral-dark': '#9CA3AF',
+                        'sudoku-border': '#6B7280',
+                        'sudoku-thick': '#1F2937',
+                        'bluetooth': '#0082FC',
+                        'hint': '#F59E0B' // 提示功能的颜色
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .sudoku-cell {
+                @apply w-12 h-12 md:w-14 md:h-14 flex items-center justify-center text-xl md:text-2xl font-medium border border-sudoku-border transition-all duration-200;
+            }
+            .sudoku-cell-thick-right {
+                @apply border-r-2 border-sudoku-thick;
+            }
+            .sudoku-cell-thick-bottom {
+                @apply border-b-2 border-sudoku-thick;
+            }
+            .number-key {
+                @apply w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center text-xl md:text-2xl font-bold bg-primary text-white cursor-pointer transition-all duration-200 hover:bg-primary/80 active:scale-95;
+            }
+            .difficulty-btn {
+                @apply px-4 py-2 rounded-md text-white font-medium transition-all duration-200;
+            }
+            .control-btn {
+                @apply px-4 py-2 rounded-md bg-neutral hover:bg-neutral-dark hover:text-white transition-all duration-200;
+            }
+            .timer-input {
+                @apply w-24 px-2 py-1 border border-gray-300 rounded text-center;
+            }
+            .language-selector {
+                @apply px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary;
+            }
+            .bluetooth-btn {
+                @apply px-4 py-2 rounded-md bg-bluetooth text-white transition-all duration-200 hover:bg-bluetooth/80 flex items-center gap-1;
+            }
+            .bluetooth-status {
+                @apply text-sm px-2 py-1 rounded-full inline-block;
+            }
+            .save-slot {
+                @apply p-3 border border-gray-200 rounded-lg mb-2 hover:border-primary transition-all cursor-pointer;
+            }
+            .save-slot-active {
+                @apply border-primary bg-primary/5;
+            }
+            .hint-btn {
+                @apply px-4 py-2 rounded-md bg-hint text-white transition-all duration-200 hover:bg-hint/80 flex items-center gap-1;
+            }
+            .hint-btn-disabled {
+                @apply bg-gray-400 cursor-not-allowed hover:bg-gray-400;
+            }
+            .hint-cell {
+                @apply bg-hint/30 animate-pulse;
+            }
+            .rank-speaker-btn {
+                @apply bg-transparent border-none text-primary hover:text-primary/80 cursor-pointer transition-all duration-200 hover:scale-110 focus:outline-none;
+            }
+            .ranking-scroll-container {
+                @apply overflow-x-auto -mx-8 px-8;
+            }
+            .ranking-table {
+                @apply min-w-full;
+            }
+            .ranking-header {
+                @apply text-left py-2 px-3 bg-gray-50 font-medium text-gray-600;
+            }
+            .ranking-cell {
+                @apply py-2 px-3 border-b border-gray-100;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4 md:p-8">
+    <!-- 顶部用户信息区 -->
+    <div id="user-info-bar" class="w-full flex justify-end items-center gap-2 mb-4">
+        <span id="current-user" class="font-bold text-primary"></span>
+        <span id="current-nurse" class="font-bold text-secondary"></span>
+        <button id="edit-user-btn" class="control-btn px-2 py-1 text-sm">修改</button>
+    </div>
+
+    <div class="max-w-6xl w-full flex flex-col lg:flex-row gap-8">
+        <!-- 游戏标题和控制区 -->
+        <div class="w-full lg:w-2/3">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-center text-gray-800 mb-6">数独挑战</h1>
+            <!-- 控制区域 -->
+            <div class="flex flex-wrap gap-4 justify-between items-center mb-6">
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{request.host_url}}">
+                        <button class="control-btn">返回到积木编程</button>
+                    </a>
+                    <button id="reset-btn" class="control-btn">
+                        <i class="fa fa-refresh mr-1"></i> 重置
+                    </button>
+                    <button id="erase-btn" class="control-btn">
+                        <i class="fa fa-eraser mr-1"></i> 清除
+                    </button>
+                    <button id="hint-btn" class="hint-btn hint-btn-disabled" disabled>
+                        <i class="fa fa-lightbulb-o mr-1"></i> 提示
+                    </button>
+                    <button id="save-btn" class="control-btn">
+                        <i class="fa fa-save mr-1"></i> 保存
+                    </button>
+                    <button id="load-btn" class="control-btn">
+                        <i class="fa fa-folder-open mr-1"></i> 加载
+                    </button>
+                    <button id="ranking-btn" class="control-btn">
+                        <i class="fa fa-trophy mr-1"></i> 排行榜
+                    </button>
+                    <button id="toggle-speech-btn" class="control-btn">
+                        <i class="fa fa-volume-up mr-1"></i> 语音开关
+                    </button>
+                    <!-- 蓝牙连接按钮 -->
+                    <button id="bluetooth-connect-btn" class="bluetooth-btn">
+                        <i class="fa fa-bluetooth"></i> 蓝牙连接
+                    </button>
+                    <button id="export-btn" class="control-btn">
+                        <i class="fa fa-download mr-1"></i> 导出记录
+                    </button>
+                    <!-- 蓝牙状态显示 -->
+                    <span id="bluetooth-status" class="bluetooth-status bg-gray-200 text-gray-700 hidden">
+                        未连接
+                    </span>
+                    <!-- 语言选择器 -->
+                    <select id="language-selector" class="language-selector">
+                        <option value="zh-CN">普通话</option>
+                        <option value="zh-HK">广东话</option>
+                        <option value="en-US">English</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="text-gray-700 font-medium">
+                        <span id="timer-display">00:00</span>
+                    </div>
+                    <!-- 错误统计显示 -->
+                    <div class="text-gray-700 font-medium" id="error-count-container">
+                        错误: <span id="error-count">0</span>
+                    </div>
+                    <div id="countdown-settings" class="hidden items-center gap-2">
+                        <input type="number" id="countdown-input" class="timer-input" min="1" max="60" value="10">
+                        <span class="text-sm text-gray-600">分钟</span>
+                    </div>
+                    <button id="timer-toggle" class="control-btn text-sm px-2">
+                        <i class="fa fa-clock-o mr-1"></i> 倒计时
+                    </button>
+                </div>
+            </div>
+
+            <!-- 难度选择 -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">选择难度开始游戏:</label>
+                <div class="flex gap-2 flex-wrap">
+                    <button class="difficulty-btn bg-red-600" data-difficulty="0">大师 (5级)</button>
+                    <button class="difficulty-btn bg-orange-500" data-difficulty="1">困难 (4级)</button>
+                    <button class="difficulty-btn bg-yellow-500" data-difficulty="2">中等 (3级)</button>
+                    <button class="difficulty-btn bg-blue-500" data-difficulty="3">简单 (2级)</button>
+                    <button class="difficulty-btn bg-green-500" data-difficulty="4">入门 (1级)</button>
+                    <button class="difficulty-btn bg-gray-500" data-difficulty="5">练习模式</button>
+                </div>
+            </div>
+
+            <!-- 数独棋盘 -->
+            <div id="sudoku-board"
+                class="grid grid-cols-9 gap-0 mx-auto w-fit border-2 border-sudoku-thick p-1 select-none">
+                <!-- 数独格子将通过JS动态生成 -->
+            </div>
+        </div>
+
+        <!-- 侧边数字键盘和说明 -->
+        <div class="w-full lg:w-1/3 flex flex-col items-center justify-start">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">数字键盘</h2>
+            <div class="grid grid-cols-3 gap-2 mb-6">
+                <div class="number-key" data-number="1">1</div>
+                <div class="number-key" data-number="2">2</div>
+                <div class="number-key" data-number="3">3</div>
+                <div class="number-key" data-number="4">4</div>
+                <div class="number-key" data-number="5">5</div>
+                <div class="number-key" data-number="6">6</div>
+                <div class="number-key" data-number="7">7</div>
+                <div class="number-key" data-number="8">8</div>
+                <div class="number-key" data-number="9">9</div>
+            </div>
+
+            <div class="bg-white p-4 rounded-lg shadow-md w-full max-w-xs">
+                <h3 class="text-lg font-semibold mb-3 text-gray-700">游戏说明</h3>
+                <ul class="text-gray-600 text-sm space-y-2">
+                    <li><i class="fa fa-check-circle text-secondary mr-1"></i> 点击格子选择要填充的位置</li>
+                    <li><i class="fa fa-check-circle text-secondary mr-1"></i> 点击数字键盘输入数字</li>
+                    <li><i class="fa fa-check-circle text-hint mr-1"></i> 先点击一个空格子，再点击提示按钮获取该位置的正确数字</li>
+                    <li><i class="fa fa-check-circle text-secondary mr-1"></i>
+                        在一个9×9的方格中填入数字1至9，使得每一行、每一列以及每一个3×3的小宫格（共9个）内，数字1至9都不重复</li>
+                    <li><i class="fa fa-check-circle text-secondary mr-1"></i> 点击任意难度按钮即可开始新游戏</li>
+                    <li><i class="fa fa-check-circle text-secondary mr-1"></i> 可切换正向计时/倒计时模式</li>
+                    <li><i class="fa fa-check-circle text-secondary mr-1"></i> 可在排行榜内查看历史记录，包括错误次数</li>
+                    <li><i class="fa fa-check-circle text-bluetooth mr-1"></i> 可连接蓝牙音箱播放语音提示</li>
+                    <li><i class="fa fa-check-circle text-primary mr-1"></i> 可保存游戏进度，稍后继续</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 存档/读档模态框 -->
+    <div id="save-load-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl max-w-md w-full">
+            <h2 id="save-load-title" class="text-xl font-bold text-gray-800 mb-4">保存游戏</h2>
+            <div id="save-slots" class="space-y-2 mb-4">
+                <!-- 存档槽将动态生成 -->
+                <div class="save-slot" data-slot="0">
+                    <div class="font-medium">存档槽 1</div>
+                    <div class="text-sm text-gray-500" id="save-info-0">空</div>
+                </div>
+                <div class="save-slot" data-slot="1">
+                    <div class="font-medium">存档槽 2</div>
+                    <div class="text-sm text-gray-500" id="save-info-1">空</div>
+                </div>
+                <div class="save-slot" data-slot="2">
+                    <div class="font-medium">存档槽 3</div>
+                    <div class="text-sm text-gray-500" id="save-info-2">空</div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button id="cancel-save-load"
+                    class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors">
+                    取消
+                </button>
+                <button id="confirm-save-load"
+                    class="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors">
+                    确认保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 蓝牙设备选择模态框 -->
+    <div id="bluetooth-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl max-w-md w-full">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">选择蓝牙设备</h2>
+            <div id="bluetooth-devices" class="max-h-60 overflow-y-auto space-y-2 mb-4">
+                <!-- 蓝牙设备列表将动态生成 -->
+                <div class="text-center py-4 text-gray-500">扫描蓝牙设备中...</div>
+            </div>
+            <div class="flex gap-2">
+                <button id="cancel-bluetooth"
+                    class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors">
+                    取消
+                </button>
+                <button id="refresh-bluetooth"
+                    class="flex-1 bg-bluetooth text-white px-4 py-2 rounded-lg font-medium hover:bg-bluetooth/80 transition-colors">
+                    <i class="fa fa-refresh mr-1"></i> 刷新
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 胜利提示模态框 -->
+    <div id="win-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl text-center max-w-md w-full">
+            <h2 class="text-2xl font-bold text-secondary mb-2">恭喜完成!</h2>
+            <p class="text-gray-600 mb-4">你成功解决了这个数独难题</p>
+            <p class="text-gray-700 mb-2">用时: <span id="win-time" class="font-bold"></span></p>
+            <p class="text-gray-700 mb-2">错误次数: <span id="win-errors" class="font-bold"></span></p>
+            <p class="text-gray-700 mb-6">提示次数: <span id="win-hints" class="font-bold text-hint"></span></p>
+            <!-- 只保留保存成绩按钮 -->
+            <button id="save-score-btn"
+                class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors">
+                保存成绩
+            </button>
+        </div>
+    </div>
+
+    <!-- 排行榜模态框 -->
+    <div id="ranking-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl max-w-3xl w-full max-h-[80vh] flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">成绩排行榜</h2>
+            <div class="mb-4">
+                <select id="ranking-difficulty" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="all">所有难度</option>
+                    <option value="0">大师 (5级)</option>
+                    <option value="1">困难 (4级)</option>
+                    <option value="2">中等 (3级)</option>
+                    <option value="3">简单 (2级)</option>
+                    <option value="4">入门 (1级)</option>
+                </select>
+            </div>
+
+            <!-- 排行榜滚动容器 -->
+            <div class="flex-1 overflow-y-auto mb-6">
+                <div class="ranking-scroll-container">
+                    <table class="ranking-table">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="ranking-header w-16" data-i18n="rankingHeaders.rank"></th>
+                                <th class="ranking-header w-32" data-i18n="rankingHeaders.player"></th>
+                                <th class="ranking-header w-32" data-i18n="rankingHeaders.difficulty"></th>
+                                <th class="ranking-header w-24" data-i18n="rankingHeaders.errors"></th>
+                                <th class="ranking-header w-24" data-i18n="rankingHeaders.hints"></th>
+                                <th class="ranking-header w-24" data-i18n="rankingHeaders.time"></th>
+                                <th class="ranking-header w-10" data-i18n="rankingHeaders.speak"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ranking-list">
+                            <!-- 排行榜内容将通过JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button id="close-ranking-btn"
+                class="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors w-full">
+                关闭
+            </button>
+        </div>
+    </div>
+
+    <!-- 用户信息输入模态框 -->
+    <div id="user-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl max-w-xs w-full">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">输入信息</h2>
+            <label class="block mb-2 text-gray-700">用户名：</label>
+            <input type="text" id="user-name-input" class="px-3 py-2 border border-gray-300 rounded-md w-full mb-4"
+                list="user-history">
+            <datalist id="user-history"></datalist>
+            <label class="block mb-2 text-gray-700">护工名：</label>
+            <input type="text" id="nurse-name-input" class="px-3 py-2 border border-gray-300 rounded-md w-full mb-4"
+                list="nurse-history">
+            <datalist id="nurse-history"></datalist>
+            <div class="flex gap-2">
+                <button id="user-modal-cancel"
+                    class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300">取消</button>
+                <button id="user-modal-confirm"
+                    class="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/80">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 游戏状态变量
+            let sudokuBoard = [];
+            let originalBoard = [];
+            let solutionBoard = [];
+            let selectedCell = null;
+            let isPlaying = false;
+            let timerInterval = null;
+            let timeElapsed = 0;
+            let isCountdown = false;
+            let countdownTime = 600; // 默认10分钟，单位：秒
+            let currentDifficulty = 2; // 默认中等难度
+            let speechEnabled = true; // 语音功能开关
+            let currentLanguage = 'zh-CN'; // 默认语言：普通话
+            let currentSaveSlot = 0; // 当前选中的存档槽
+            let saveLoadMode = 'save'; // 存档/读档模式，默认存档
+            let errorCount = 0; // 错误计数
+            let hintCount = 0; // 提示计数
+
+            // 蓝牙相关变量
+            let bluetoothDevice = null;
+            let bluetoothServer = null;
+            let bluetoothCharacteristic = null; // 用于发送数据的特征值
+            let bluetoothConnected = false;
+
+            // 定义要发送的BLE信号常量
+            const BLE_COMMANDS = {
+                GAME_START: 0x01,       // 游戏开始
+                GAME_END: 0x02,         // 游戏结束
+                CORRECT_INPUT: 0x03,    // 输入正确
+                WRONG_INPUT: 0x04,      // 输入错误
+                HINT_USED: 0x05,        // 使用提示
+                TIME_WARNING: 0x06,     // 时间警告
+                TIME_UP: 0x07,          // 时间到
+                RANK_ANNOUNCEMENT: 0x08 // 排名播报
+            };
+
+            // 多语言文本映射
+            const translations = {
+                'zh-CN': {
+                    difficultyNames: ["大师 (5级)", "困难 (4级)", "中等 (3级)", "简单 (2级)", "入门 (1级)", "练习模式"],
+                    welcome: "欢迎来到数独挑战游戏，请选择难度开始游戏",
+                    selectedCell: "已选择第{row}行，第{col}列",
+                    gameStarted: "已开始{difficulty}的数独游戏",
+                    number: "{number}",
+                    correct: "正确",
+                    wrong: "错误",
+                    cleared: "已清除",
+                    gameReset: "游戏已重置",
+                    countdownMode: "已切换到倒计时模式",
+                    timerMode: "已切换到正向计时模式",
+                    speechOn: "语音功能已开启",
+                    timeWarning: "剩余10秒",
+                    timeUp: "时间到！游戏结束。",
+                    completion: "恭喜你完成了数独挑战！",
+                    scoreSaved: "恭喜{name}，成绩已保存",
+                    timerToggle: "重置",
+                    timerToggleAlt: "正向计时",
+                    resetBtn: "重置",
+                    eraseBtn: "清除",
+                    hintBtn: "提示",
+                    saveBtn: "保存",
+                    loadBtn: "加载",
+                    rankingBtn: "排行榜",
+                    toggleSpeechBtn: "语音开关",
+                    winTitle: "恭喜完成!",
+                    winMessage: "你成功解决了这个数独难题",
+                    winTime: "用时: ",
+                    winErrors: "错误次数: ",
+                    winHints: "提示次数: ",
+                    playerName: "输入你的名字:",
+                    saveScore: "保存成绩",
+                    rankingTitle: "成绩排行榜",
+                    allDifficulties: "所有难度",
+                    closeRanking: "关闭",
+                    errorCount: "错误: {count}",
+                    hintCount: "提示: {count}",
+                    saveTitle: "保存游戏",
+                    loadTitle: "加载游戏",
+                    confirmSave: "确认保存",
+                    confirmLoad: "确认加载",
+                    cancelSaveLoad: "取消",
+                    saveSlot: "存档槽 {slot}",
+                    saveEmpty: "空",
+                    saveInfo: "{difficulty} - {time} - 错误: {errors} - 提示: {hints} - {date}",
+                    saveOverwrite: "此存档槽已有数据，确定要覆盖吗？",
+                    saveSuccess: "游戏已保存到存档槽 {slot}",
+                    loadSuccess: "已从存档槽 {slot} 加载游戏",
+                    loadEmpty: "存档槽 {slot} 为空，无法加载",
+                    bluetoothBtn: "蓝牙连接",
+                    bluetoothConnecting: "正在连接...",
+                    bluetoothConnected: "已连接: {name}",
+                    bluetoothDisconnected: "未連接",
+                    bluetoothSearching: "扫描蓝牙设备中...",
+                    bluetoothNoDevices: "未发现蓝牙设备",
+                    bluetoothConnect: "连接",
+                    bluetoothCancel: "取消",
+                    bluetoothRefresh: "刷新",
+                    bluetoothSelectDevice: "選擇藍牙設備",
+                    bluetoothConnectFailed: "连接失败",
+                    bluetoothDisconnect: "断开连接",
+                    bluetoothSpeakerGuide: "请确保蓝牙音箱已开启并处于可发现模式",
+                    hintMessage: "第{row}行第{col}列的正确数字是{number}",
+                    noHintsAvailable: "没有选中空单元格",
+                    instructions: [
+                        "点击格子选择要填充的位置",
+                        "点击数字键盘输入数字",
+                        "先点击一个空格子，再点击提示按钮获取该位置的正确数字",
+                        "在一个9×9的方格中填入数字1至9，使得每一行、每一列以及每一个3×3的小宫格（共9个）内，数字1至9都不重复",
+                        "点击任意难度按钮即可开始新游戏",
+                        "可切换正向计时/倒计时模式",
+                        "可在排行榜内查看历史记录，包括错误次数",
+                        "可连接蓝牙音箱播放语音提示",
+                        "可保存游戏进度，稍后继续"
+                    ],
+                    exportSuccess: "已成功导出{count}条游戏记录",
+                    noRecordsToExport: "没有可导出的游戏记录",
+                    excelHeaders: {
+                        name: "姓名",
+                        difficulty: "难度",
+                        errors: "错误次数",
+                        hints: "提示次数",
+                        time: "用时",
+                        date: "日期"
+                    },
+                    gameTitle: "数独挑战",
+                    selectDifficulty: "选择难度开始游戏:",
+                    numberPad: "数字键盘",
+                    gameInstructions: "游戏说明",
+                    exportRecords: "导出记录",
+                    errorStats: "错误统计",
+                    errors: "错误次数: ",
+                    // 排行榜表头翻译
+                    rankingHeaders: {
+                        rank: "排名",
+                        player: "玩家",
+                        difficulty: "难度",
+                        errors: "错误",
+                        hints: "提示",
+                        time: "用时",
+                        speak: "语音"
+                    },
+                    // 排行榜朗读相关翻译
+                    rankAnnouncement: "恭喜{name}，在{difficulty}难度下获得第{rank}名，用时{time}",
+                    firstPlace: "一",
+                    secondPlace: "二",
+                    thirdPlace: "三",
+                    fourthPlace: "四",
+                    fifthPlace: "五",
+                    sixthPlace: "六",
+                    seventhPlace: "七",
+                    eighthPlace: "八",
+                    ninthPlace: "九",
+                    tenthPlace: "十"
+                },
+                'zh-HK': {
+                    difficultyNames: ["大師 (5級)", "困難 (4級)", "中等 (3級)", "簡單 (2級)", "入門 (1級)", "練習模式"],
+                    welcome: "歡迎來到數獨挑戰遊戲，請選擇難度開始遊戲",
+                    selectedCell: "已選擇第{row}行，第{col}列",
+                    gameStarted: "已開始{difficulty}的數獨遊戲",
+                    number: "{number}",
+                    correct: "正確",
+                    wrong: "錯誤",
+                    cleared: "已清除",
+                    gameReset: "遊戲已重置",
+                    countdownMode: "已切換到倒計時模式",
+                    timerMode: "已切換到正向計時模式",
+                    speechOn: "語音功能已開啟",
+                    timeWarning: "剩餘10秒",
+                    timeUp: "時間到！遊戲結束。",
+                    completion: "恭喜你完成了數獨挑戰！",
+                    scoreSaved: "恭喜{name}，成績已保存",
+                    timerToggle: "倒計時",
+                    timerToggleAlt: "正向計時",
+                    resetBtn: "重置",
+                    eraseBtn: "清除",
+                    hintBtn: "提示",
+                    saveBtn: "保存",
+                    loadBtn: "載入",
+                    rankingBtn: "排行榜",
+                    toggleSpeechBtn: "語音開關",
+                    winTitle: "恭喜完成!",
+                    winMessage: "你成功解決了這個數獨難題",
+                    winTime: "用時: ",
+                    winErrors: "錯誤次數: ",
+                    winHints: "提示次數: ",
+                    playerName: "輸入你的名字:",
+                    saveScore: "保存成績",
+                    rankingTitle: "成績排行榜",
+                    allDifficulties: "所有難度",
+                    closeRanking: "關閉",
+                    errorCount: "錯誤: {count}",
+                    hintCount: "提示: {count}",
+                    saveTitle: "保存遊戲",
+                    loadTitle: "載入遊戲",
+                    confirmSave: "確認保存",
+                    confirmLoad: "確認載入",
+                    cancelSaveLoad: "取消",
+                    saveSlot: "存檔槽 {slot}",
+                    saveEmpty: "空",
+                    saveInfo: "{difficulty} - {time} - 錯誤: {errors} - 提示: {hints} - {date}",
+                    saveOverwrite: "此存檔槽已有數據，確定要覆蓋嗎？",
+                    saveSuccess: "遊戲已保存到存檔槽 {slot}",
+                    loadSuccess: "已從存檔槽 {slot} 載入遊戲",
+                    loadEmpty: "存檔槽 {slot} 為空，無法載入",
+                    bluetoothBtn: "藍牙連接",
+                    bluetoothConnecting: "正在連接...",
+                    bluetoothConnected: "已連接: {name}",
+                    bluetoothDisconnected: "未連接",
+                    bluetoothSearching: "掃描藍牙設備中...",
+                    bluetoothNoDevices: "未發現藍牙設備",
+                    bluetoothConnect: "連接",
+                    bluetoothCancel: "取消",
+                    bluetoothRefresh: "刷新",
+                    bluetoothSelectDevice: "選擇藍牙設備",
+                    bluetoothConnectFailed: "連接失敗",
+                    bluetoothDisconnect: "斷開連接",
+                    bluetoothSpeakerGuide: "請確保藍牙音箱已開啟並處於可發現模式",
+                    hintMessage: "第{row}行第{col}列的正確數字是{number}",
+                    noHintsAvailable: "沒有選中空單元格",
+                    instructions: [
+                        "點擊格子選擇要填充的位置",
+                        "點擊數字鍵盤輸入數字",
+                        "先點擊一個空格子，再點擊提示按鈕獲取該位置的正確數字",
+                        "在一個9×9的方格中填入數字1至9，使得每一行、每一列以及每一個3×3的小宮格（共9個）內，數字1至9都不重複",
+                        "點擊任意難度按鈕即可開始新遊戲",
+                        "可切換正向計時/倒計時模式",
+                        "可在排行榜內查看歷史記錄，包括錯誤次數",
+                        "可連接藍牙音箱播放語音提示",
+                        "可保存遊戲進度，稍後繼續"
+                    ],
+                    exportSuccess: "已成功導出{count}條遊戲記錄",
+                    noRecordsToExport: "沒有可導出的遊戲記錄",
+                    excelHeaders: {
+                        name: "姓名",
+                        difficulty: "難度",
+                        errors: "錯誤次數",
+                        hints: "提示次數",
+                        time: "用時",
+                        date: "日期"
+                    },
+                    gameTitle: "數獨挑戰",
+                    selectDifficulty: "選擇難度開始遊戲:",
+                    numberPad: "數字鍵盤",
+                    gameInstructions: "遊戲說明",
+                    exportRecords: "導出記錄",
+                    errorStats: "錯誤統計",
+                    errors: "錯誤次數: ",
+                    // 排行榜表头翻译
+                    rankingHeaders: {
+                        rank: "排名",
+                        player: "玩家",
+                        difficulty: "難度",
+                        errors: "錯誤",
+                        hints: "提示",
+                        time: "用時",
+                        speak: "語音"
+                    },
+                    // 排行榜朗读相关翻译
+                    rankAnnouncement: "恭喜{name}，在{difficulty}難度下獲得第{rank}名，用時{time}",
+                    firstPlace: "一",
+                    secondPlace: "二",
+                    thirdPlace: "三",
+                    fourthPlace: "四",
+                    fifthPlace: "五",
+                    sixthPlace: "六",
+                    seventhPlace: "七",
+                    eighthPlace: "八",
+                    ninthPlace: "九",
+                    tenthPlace: "十"
+                },
+                'en-US': {
+                    difficultyNames: ["Master (Level 5)", "Hard (Level 4)", "Medium (Level 3)", "Easy (Level 2)", "Beginner (Level 1)", "Practice Mode"],
+                    welcome: "Welcome to Sudoku Challenge. Please select a difficulty to start",
+                    selectedCell: "Selected row {row}, column {col}",
+                    gameStarted: "Started {difficulty} Sudoku game",
+                    number: "{number}",
+                    correct: "Correct",
+                    wrong: "Wrong",
+                    cleared: "Cleared",
+                    gameReset: "Game reset",
+                    countdownMode: "Switched to countdown mode",
+                    timerMode: "Switched to timer mode",
+                    speechOn: "Speech enabled",
+                    timeWarning: "10 seconds remaining",
+                    timeUp: "Time's up! Game over.",
+                    completion: "Congratulations! You completed the Sudoku challenge!",
+                    scoreSaved: "Congratulations {name}, score saved",
+                    timerToggle: "Countdown",
+                    timerToggleAlt: "Timer",
+                    resetBtn: "Reset",
+                    eraseBtn: "Erase",
+                    hintBtn: "Hint",
+                    saveBtn: "Save",
+                    loadBtn: "Load",
+                    rankingBtn: "Ranking",
+                    toggleSpeechBtn: "Speech",
+                    winTitle: "Congratulations!",
+                    winMessage: "You successfully solved this Sudoku puzzle",
+                    winTime: "Time: ",
+                    winErrors: "Errors: ",
+                    winHints: "Hints used: ",
+                    playerName: "Enter your name:",
+                    saveScore: "Save Score",
+                    rankingTitle: "Score Ranking",
+                    allDifficulties: "All difficulties",
+                    closeRanking: "Close",
+                    errorCount: "Errors: {count}",
+                    hintCount: "Hints: {count}",
+                    saveTitle: "Save Game",
+                    loadTitle: "Load Game",
+                    confirmSave: "Confirm Save",
+                    confirmLoad: "Confirm Load",
+                    cancelSaveLoad: "Cancel",
+                    saveSlot: "Save Slot {slot}",
+                    saveEmpty: "Empty",
+                    saveInfo: "{difficulty} - {time} - Errors: {errors} - Hints: {hints} - {date}",
+                    saveOverwrite: "This slot already has data. Overwrite?",
+                    saveSuccess: "Game saved to slot {slot}",
+                    loadSuccess: "Game loaded from slot {slot}",
+                    loadEmpty: "Slot {slot} is empty, cannot load",
+                    bluetoothBtn: "Bluetooth",
+                    bluetoothConnecting: "Connecting...",
+                    bluetoothConnected: "Connected: {name}",
+                    bluetoothDisconnected: "Not connected",
+                    bluetoothSearching: "Searching for devices...",
+                    bluetoothNoDevices: "No devices found",
+                    bluetoothConnect: "Connect",
+                    bluetoothCancel: "Cancel",
+                    bluetoothRefresh: "Refresh",
+                    bluetoothSelectDevice: "Select Bluetooth Device",
+                    bluetoothConnectFailed: "Connection failed",
+                    bluetoothDisconnect: "Disconnect",
+                    bluetoothSpeakerGuide: "Make sure your Bluetooth speaker is on and discoverable",
+                    hintMessage: "The correct number for row {row}, column {col} is {number}",
+                    noHintsAvailable: "No empty cell selected",
+                    instructions: [
+                        "Click on a cell to select it",
+                        "Click the number keys to enter a number",
+                        "First select an empty cell, then click the hint button to get the correct number",
+                        "Fill the 9×9 grid with numbers 1-9 so that each row, column, and 3×3 subgrid contains all numbers from 1 to 9 without repetition",
+                        "Click any difficulty button to start a new game",
+                        "Can switch between stopwatch and countdown mode",
+                        "Check historical records in the ranking list, including error counts",
+                        "Can connect to Bluetooth speakers for voice prompts",
+                        "Can save game progress and continue later"
+                    ],
+                    exportSuccess: "{count} game records exported successfully",
+                    noRecordsToExport: "No game records to export",
+                    excelHeaders: {
+                        name: "Name",
+                        difficulty: "Difficulty",
+                        errors: "Errors",
+                        hints: "Hints",
+                        time: "Time",
+                        date: "Date"
+                    },
+                    gameTitle: "Sudoku Challenge",
+                    selectDifficulty: "Select difficulty to start game:",
+                    numberPad: "Number Pad",
+                    gameInstructions: "Game Instructions",
+                    exportRecords: "Export Records",
+                    errorStats: "Error Statistics",
+                    errors: "Error count: ",
+                    // 排行榜表头翻译
+                    rankingHeaders: {
+                        rank: "Rank",
+                        player: "Player",
+                        difficulty: "Difficulty",
+                        errors: "Errors",
+                        hints: "Hints",
+                        time: "Time",
+                        speak: "Speak"
+                    },
+                    // 排行榜朗读相关翻译
+                    rankAnnouncement: "Congratulations {name}, rank {rank} in {difficulty} difficulty, time: {time}",
+                    firstPlace: "1st",
+                    secondPlace: "2nd",
+                    thirdPlace: "3rd",
+                    fourthPlace: "4th",
+                    fifthPlace: "5th",
+                    sixthPlace: "6th",
+                    seventhPlace: "7th",
+                    eighthPlace: "8th",
+                    ninthPlace: "9th",
+                    tenthPlace: "10th"
+                }
+            };
+
+            // 获取DOM元素
+            const sudokuBoardEl = document.getElementById('sudoku-board');
+            const timerDisplay = document.getElementById('timer-display');
+            const timerToggle = document.getElementById('timer-toggle');
+            const countdownSettings = document.getElementById('countdown-settings');
+            const countdownInput = document.getElementById('countdown-input');
+            const resetBtn = document.getElementById('reset-btn');
+            const eraseBtn = document.getElementById('erase-btn');
+            const hintBtn = document.getElementById('hint-btn');
+            const rankingBtn = document.getElementById('ranking-btn');
+            const toggleSpeechBtn = document.getElementById('toggle-speech-btn');
+            const numberKeys = document.querySelectorAll('.number-key');
+            const difficultyBtns = document.querySelectorAll('[data-difficulty]');
+            const winModal = document.getElementById('win-modal');
+            const winTime = document.getElementById('win-time');
+            const winErrorsEl = document.getElementById('win-errors');
+            const winHintsEl = document.getElementById('win-hints');
+            const playerNameInput = document.getElementById('user-name-input');
+            const saveScoreBtn = document.getElementById('save-score-btn');
+            const rankingModal = document.getElementById('ranking-modal');
+            const rankingList = document.getElementById('ranking-list');
+            const rankingDifficulty = document.getElementById('ranking-difficulty');
+            const closeRankingBtn = document.getElementById('close-ranking-btn');
+            const languageSelector = document.getElementById('language-selector');
+            const exportBtn = document.getElementById('export-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const loadBtn = document.getElementById('load-btn');
+            const saveLoadModal = document.getElementById('save-load-modal');
+            const saveLoadTitle = document.getElementById('save-load-title');
+            const saveSlots = document.querySelectorAll('.save-slot');
+            const cancelSaveLoadBtn = document.getElementById('cancel-save-load');
+            const confirmSaveLoadBtn = document.getElementById('confirm-save-load');
+            const errorCountEl = document.getElementById('error-count');
+            const errorCountContainer = document.getElementById('error-count-container');
+            const bluetoothConnectBtn = document.getElementById('bluetooth-connect-btn');
+            const bluetoothStatus = document.getElementById('bluetooth-status');
+            const bluetoothModal = document.getElementById('bluetooth-modal');
+            const bluetoothDevices = document.getElementById('bluetooth-devices');
+            const cancelBluetoothBtn = document.getElementById('cancel-bluetooth');
+            const refreshBluetoothBtn = document.getElementById('refresh-bluetooth');
+
+            // 语音合成相关变量
+            const speechSynthesis = window.speechSynthesis;
+            let voices = [];
+            let currentVoice = null;
+
+            // 初始化语音合成
+            function initSpeech() {
+                // 加载可用语音
+                function loadVoices() {
+                    voices = speechSynthesis.getVoices();
+                    updateVoiceForLanguage(currentLanguage);
+                }
+
+                // 当语音列表加载完成时
+                speechSynthesis.onvoiceschanged = loadVoices;
+
+                // 初始化加载
+                loadVoices();
+            }
+
+            // 根据当前语言更新语音
+            function updateVoiceForLanguage(lang) {
+                // 尝试找到匹配当前语言的语音
+                currentVoice = voices.find(voice =>
+                    voice.lang.startsWith(lang)
+                );
+
+                // 如果找不到精确匹配，尝试找到同语言家族的语音
+                if (!currentVoice) {
+                    const langFamily = lang.split('-')[0];
+                    currentVoice = voices.find(voice =>
+                        voice.lang.startsWith(langFamily)
+                    );
+                }
+
+                // 如果仍然找不到，使用默认语音
+                if (!currentVoice) {
+                    currentVoice = voices[0] || null;
+                }
+            }
+
+            // 发送BLE命令的函数
+            function sendBleCommand(command) {
+                if (!bluetoothConnected || !bluetoothCharacteristic) {
+                    console.log('蓝牙未连接或特征值未初始化，无法发送命令');
+                    return;
+                }
+
+                try {
+                    // 将命令转换为Uint8Array
+                    const data = new Uint8Array([command]);
+                    bluetoothCharacteristic.writeValue(data)
+                        .then(() => {
+                            console.log(`BLE命令发送成功: ${command}`);
+                        })
+                        .catch(error => {
+                            console.error('BLE命令发送失败:', error);
+                        });
+                } catch (error) {
+                    console.error('发送BLE命令时出错:', error);
+                }
+            }
+
+            // 语音播报函数，同时发送BLE命令
+            function speak(textKey, command = null, replacements = {}) {
+                if (!speechEnabled || !speechSynthesis) {
+                    if (command !== null && bluetoothConnected) {
+                        sendBleCommand(command);
+                    }
+                    return;
+                }
+
+                // 优先使用传入的原始文本，否则按原逻辑从翻译表获取
+                let text = replacements.rawText || translations[currentLanguage][textKey];
+
+                // 处理变量替换（如果需要）
+                if (!replacements.rawText) {
+                    Object.keys(replacements).forEach(key => {
+                        text = text.replace(`{${key}}`, replacements[key]);
+                    });
+                }
+
+                // 语音合成逻辑
+                speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLanguage;
+                utterance.volume = 1;
+                utterance.rate = 1;
+                utterance.pitch = 1;
+
+                if (currentVoice) {
+                    utterance.voice = currentVoice;
+                }
+
+                speechSynthesis.speak(utterance);
+
+                // 发送BLE命令（如果已连接且有命令）
+                if (command !== null && bluetoothConnected) {
+                    sendBleCommand(command);
+                }
+            }
+
+            // 朗读排名信息，包含时间
+            function speakRank(name, difficulty, rank, time) {
+                if (!speechEnabled) return;
+
+                const text = translations[currentLanguage].rankAnnouncement
+                    .replace('{name}', name)
+                    .replace('{difficulty}', difficulty)
+                    .replace('{rank}', rank)
+                    .replace('{time}', time);
+
+                speak(null, BLE_COMMANDS.RANK_ANNOUNCEMENT, { rawText: text });
+            }
+
+            // 更新错误计数显示
+            function updateErrorCount() {
+                errorCountContainer.innerHTML = translations[currentLanguage].errorCount.replace('{count}', errorCount);
+            }
+
+            // 获取翻译文本
+            function getTranslation(key) {
+                // 拆分嵌套的翻译键，如"rankingHeaders.rank"
+                const keys = key.split('.');
+                let value = translations[currentLanguage];
+
+                for (const k of keys) {
+                    if (value && value[k] !== undefined) {
+                        value = value[k];
+                    } else {
+                        return null; // 未找到翻译
+                    }
+                }
+                return value;
+            }
+
+            // 更新所有翻译文本
+            function updateTranslations() {
+                // 更新所有带有data-i18n属性的元素
+                document.querySelectorAll('[data-i18n]').forEach(element => {
+                    const key = element.getAttribute('data-i18n');
+                    const translation = getTranslation(key);
+                    if (translation) {
+                        element.textContent = translation;
+                    }
+                });
+
+                // 更新UI文本
+                updateUIText();
+            }
+
+            // 更新UI文本以匹配当前语言
+            function updateUIText() {
+                const t = translations[currentLanguage];
+
+                // 更新按钮文本
+                resetBtn.innerHTML = `<i class="fa fa-refresh mr-1"></i> ${t.resetBtn}`;
+                eraseBtn.innerHTML = `<i class="fa fa-eraser mr-1"></i> ${t.eraseBtn}`;
+                hintBtn.innerHTML = `<i class="fa fa-lightbulb-o mr-1"></i> ${t.hintBtn}`;
+                saveBtn.innerHTML = `<i class="fa fa-save mr-1"></i> ${t.saveBtn}`;
+                loadBtn.innerHTML = `<i class="fa fa-folder-open mr-1"></i> ${t.loadBtn}`;
+                rankingBtn.innerHTML = `<i class="fa fa-trophy mr-1"></i> ${t.rankingBtn}`;
+
+                if (speechEnabled) {
+                    toggleSpeechBtn.innerHTML = `<i class="fa fa-volume-up mr-1"></i> ${t.toggleSpeechBtn}`;
+                } else {
+                    toggleSpeechBtn.innerHTML = `<i class="fa fa-volume-off mr-1"></i> ${t.toggleSpeechBtn}`;
+                }
+
+                if (isCountdown) {
+                    timerToggle.innerHTML = `<i class="fa fa-clock-o mr-1"></i> ${t.timerToggleAlt}`;
+                } else {
+                    timerToggle.innerHTML = `<i class="fa fa-clock-o mr-1"></i> ${t.timerToggle}`;
+                }
+
+                // 更新存档相关文本
+                if (saveLoadMode === 'save') {
+                    saveLoadTitle.textContent = t.saveTitle;
+                    confirmSaveLoadBtn.textContent = t.confirmSave;
+                } else {
+                    saveLoadTitle.textContent = t.loadTitle;
+                    confirmSaveLoadBtn.textContent = t.confirmLoad;
+                }
+                cancelSaveLoadBtn.textContent = t.cancelSaveLoad;
+
+                // 更新存档槽文本
+                saveSlots.forEach((slot, index) => {
+                    slot.querySelector('.font-medium').textContent = t.saveSlot.replace('{slot}', index + 1);
+                });
+                updateSaveSlotInfo();
+
+                // 更新蓝牙相关文本
+                if (bluetoothConnected && bluetoothDevice) {
+                    bluetoothConnectBtn.innerHTML = `<i class="fa fa-bluetooth"></i> ${t.bluetoothDisconnect}`;
+                    bluetoothStatus.textContent = t.bluetoothConnected.replace('{name}', bluetoothDevice.name || 'Unknown');
+                } else {
+                    bluetoothConnectBtn.innerHTML = `<i class="fa fa-bluetooth"></i> ${t.bluetoothBtn}`;
+                    bluetoothStatus.textContent = t.bluetoothDisconnected;
+                }
+
+                document.querySelector('#bluetooth-modal h2').textContent = t.bluetoothSelectDevice;
+                cancelBluetoothBtn.textContent = t.bluetoothCancel;
+                refreshBluetoothBtn.innerHTML = `<i class="fa fa-refresh mr-1"></i> ${t.bluetoothRefresh}`;
+
+                // 更新模态框文本
+                document.querySelector('#win-modal h2').textContent = t.winTitle;
+                document.querySelector('#win-modal p:nth-of-type(1)').textContent = t.winMessage;
+                document.querySelector('#win-modal p:nth-of-type(2)').textContent = t.winTime;
+                document.querySelector('#win-modal p:nth-of-type(3)').textContent = t.winErrors;
+                document.querySelector('#win-modal p:nth-of-type(4)').textContent = t.winHints;
+                document.querySelector('h1').textContent = t.gameTitle;
+                document.querySelector('.difficulty-btn').parentNode.previousElementSibling.textContent = t.selectDifficulty;
+                document.querySelector('h2').textContent = t.numberPad;
+                document.querySelector('h3').textContent = t.gameInstructions;
+                document.getElementById('export-btn').innerHTML = `<i class="fa fa-download mr-1"></i> ${t.exportRecords}`;
+
+                // 错误统计相关的多语言更新
+                playerNameInput.placeholder = currentLanguage === 'en-US' ? 'Your name' : '你的名字';
+                saveScoreBtn.textContent = t.saveScore;
+
+                document.querySelector('#ranking-modal h2').textContent = t.rankingTitle;
+                rankingDifficulty.options[0].textContent = t.allDifficulties;
+                closeRankingBtn.textContent = t.closeRanking;
+
+                // 更新难度选项
+                difficultyBtns.forEach((btn, index) => {
+                    btn.textContent = t.difficultyNames[index];
+                });
+
+                // 更新排行榜难度选项
+                for (let i = 1; i < 6; i++) {
+                    rankingDifficulty.options[i].textContent = t.difficultyNames[i - 1];
+                }
+
+                // 更新游戏说明
+                const instructions = document.querySelectorAll('.bg-white ul li');
+                instructions.forEach((li, index) => {
+                    // 保留图标，只替换文本
+                    const icon = li.querySelector('i').outerHTML;
+                    li.innerHTML = `${icon} ${t.instructions[index]}`;
+                });
+
+                // 更新错误计数显示
+                updateErrorCount();
+            }
+
+            // 切换语言
+            function changeLanguage(lang) {
+                currentLanguage = lang;
+                updateVoiceForLanguage(lang);
+                updateTranslations();
+
+                // 播报语言切换信息
+                speak('speechOn');
+            }
+
+            // 提示功能：为选中的空单元格显示正确答案
+            function showHint() {
+                if (!isPlaying) return;
+
+                // 检查是否有选中的单元格
+                if (!selectedCell) {
+                    speak('noHintsAvailable');
+                    return;
+                }
+
+                const { row, col } = selectedCell;
+
+                // 检查选中的单元格是否为空
+                if (sudokuBoard[row][col] !== 0 || originalBoard[row][col] !== 0) {
+                    speak('noHintsAvailable');
+                    return;
+                }
+
+                // 增加提示计数
+                hintCount++;
+
+                // 获取单元格元素并添加提示动画
+                const cellElement = sudokuBoardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+
+                // 移除之前可能存在的提示样式
+                document.querySelectorAll('.hint-cell').forEach(cell => {
+                    cell.classList.remove('hint-cell');
+                });
+
+                // 添加提示样式和动画
+                cellElement.classList.add('hint-cell');
+
+                // 获取正确数字
+                const correctNumber = solutionBoard[row][col];
+
+                // 语音提示并发送BLE命令
+                speak('hintMessage', BLE_COMMANDS.HINT_USED, {
+                    row: row + 1,
+                    col: col + 1,
+                    number: correctNumber
+                });
+
+                // 3秒后自动填充正确数字并移除提示样式
+                setTimeout(() => {
+                    if (cellElement) {
+                        cellElement.classList.remove('hint-cell');
+                        sudokuBoard[row][col] = correctNumber;
+                        renderBoard();
+
+                        // 检查是否完成
+                        checkCompletion();
+                    }
+                }, 3000);
+            }
+
+            // 存档相关函数
+            function updateSaveSlotInfo() {
+                const t = translations[currentLanguage];
+
+                // 读取所有存档并更新显示
+                for (let i = 0; i < 3; i++) {
+                    const saveData = getSaveData(i);
+                    const infoEl = document.getElementById(`save-info-${i}`);
+
+                    if (saveData) {
+                        const date = new Date(saveData.timestamp);
+                        const formattedDate = date.toLocaleString();
+                        const formattedTime = formatTime(saveData.timeElapsed);
+                        const difficultyName = t.difficultyNames[saveData.difficulty];
+
+                        infoEl.textContent = t.saveInfo.replace('{difficulty}', difficultyName)
+                            .replace('{time}', formattedTime)
+                            .replace('{errors}', saveData.errorCount)
+                            .replace('{hints}', saveData.hintCount)
+                            .replace('{date}', formattedDate);
+                    } else {
+                        infoEl.textContent = t.saveEmpty;
+                    }
+                }
+            }
+
+            function getSaveData(slot) {
+                const saveDataStr = localStorage.getItem(`sudokuSave${slot}`);
+                return saveDataStr ? JSON.parse(saveDataStr) : null;
+            }
+
+            function saveGame(slot) {
+                // 只有在游戏进行中才能保存
+                if (!isPlaying) return false;
+
+                // 创建要保存的数据对象
+                const saveData = {
+                    sudokuBoard: sudokuBoard,
+                    originalBoard: originalBoard,
+                    solutionBoard: solutionBoard,
+                    difficulty: currentDifficulty,
+                    timeElapsed: timeElapsed,
+                    isCountdown: isCountdown,
+                    countdownTime: countdownTime,
+                    errorCount: errorCount,
+                    hintCount: hintCount, // 保存提示计数
+                    timestamp: new Date().toISOString()
+                };
+
+                // 保存到本地存储
+                localStorage.setItem(`sudokuSave${slot}`, JSON.stringify(saveData));
+
+                // 更新UI
+                updateSaveSlotInfo();
+
+                // 语音提示
+                speak('saveSuccess', null, { slot: slot + 1 });
+
+                return true;
+            }
+
+            function loadGame(slot) {
+                const saveData = getSaveData(slot);
+
+                // 检查存档是否存在
+                if (!saveData) {
+                    speak('loadEmpty', null, { slot: slot + 1 });
+                    return false;
+                }
+
+                // 停止当前计时器
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+
+                // 恢复游戏状态
+                sudokuBoard = saveData.sudokuBoard;
+                originalBoard = saveData.originalBoard;
+                solutionBoard = saveData.solutionBoard;
+                currentDifficulty = saveData.difficulty;
+                timeElapsed = saveData.timeElapsed;
+                isCountdown = saveData.isCountdown;
+                countdownTime = saveData.countdownTime;
+                errorCount = saveData.errorCount;
+                hintCount = saveData.hintCount; // 恢复提示计数
+
+                // 更新UI
+                renderBoard();
+                updateTimerDisplay();
+                updateErrorCount();
+
+                // 更新难度按钮选中状态
+                difficultyBtns.forEach(btn => {
+                    btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                });
+                difficultyBtns[currentDifficulty].classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+
+                // 更新倒计时设置UI
+                if (isCountdown) {
+                    countdownSettings.classList.remove('hidden');
+                    countdownSettings.classList.add('flex');
+                    countdownInput.value = Math.floor(countdownTime / 60);
+                } else {
+                    countdownSettings.classList.remove('flex');
+                    countdownSettings.classList.add('hidden');
+                }
+
+                // 重新开始计时器
+                isPlaying = true;
+                startTimer();
+
+                // 更新UI文本
+                updateUIText();
+
+                // 语音提示
+                speak('loadSuccess', null, { slot: slot + 1 });
+
+                return true;
+            }
+
+            function openSaveModal() {
+                // 只有在游戏进行中才能保存
+                if (!isPlaying) {
+                    alert(translations[currentLanguage].saveEmpty);
+                    return;
+                }
+
+                saveLoadMode = 'save';
+                currentSaveSlot = 0;
+
+                // 更新UI
+                saveSlots.forEach((slot, index) => {
+                    slot.classList.toggle('save-slot-active', index === 0);
+                });
+                updateUIText();
+
+                // 显示模态框
+                saveLoadModal.classList.remove('hidden');
+            }
+
+            function openLoadModal() {
+                saveLoadMode = 'load';
+                currentSaveSlot = 0;
+
+                // 更新UI
+                saveSlots.forEach((slot, index) => {
+                    slot.classList.toggle('save-slot-active', index === 0);
+                });
+                updateUIText();
+
+                // 显示模态框
+                saveLoadModal.classList.remove('hidden');
+            }
+
+            function confirmSaveLoad() {
+                if (saveLoadMode === 'save') {
+                    // 检查是否要覆盖已有存档
+                    const existingData = getSaveData(currentSaveSlot);
+                    if (existingData) {
+                        if (!confirm(translations[currentLanguage].saveOverwrite)) {
+                            return;
+                        }
+                    }
+
+                    saveGame(currentSaveSlot);
+                } else {
+                    loadGame(currentSaveSlot);
+                }
+
+                // 关闭模态框
+                saveLoadModal.classList.add('hidden');
+            }
+
+            // 导出游戏记录为Excel - 按护工分组
+            exportBtn.addEventListener('click', exportGameRecords);
+
+            // 导出游戏记录函数 - 按护工分组
+            function exportGameRecords() {
+                // 获取本地存储中的游戏记录
+                const records = JSON.parse(localStorage.getItem('sudokuScores') || '[]');
+
+                if (records.length === 0) {
+                    alert(translations[currentLanguage].noRecordsToExport || "没有可导出的游戏记录");
+                    return;
+                }
+
+                // 获取当前排行榜筛选条件
+                const difficultyFilter = rankingDifficulty.value;
+                let filteredRecords = [...records];
+
+                // 根据筛选条件过滤记录
+                if (difficultyFilter !== 'all') {
+                    filteredRecords = filteredRecords.filter(r => r.difficulty.toString() === difficultyFilter);
+                }
+
+                if (filteredRecords.length === 0) {
+                    alert(translations[currentLanguage].noRecordsToExport || "没有可导出的游戏记录");
+                    return;
+                }
+
+                const t = translations[currentLanguage];
+
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+
+                // 按护工名分组记录
+                const nurseGroups = {};
+                filteredRecords.forEach(record => {
+                    // 获取护工名，默认为"未知护工"
+                    const nurseName = record.nurse || (currentLanguage === 'en-US' ? "Unknown Nurse" : "未知护工");
+
+                    if (!nurseGroups[nurseName]) {
+                        nurseGroups[nurseName] = [];
+                    }
+                    nurseGroups[nurseName].push(record);
+                });
+
+                // 为每个护工创建一个工作表
+                Object.entries(nurseGroups).forEach(([nurseName, nurseRecords]) => {
+                    // 准备导出数据
+                    const exportData = nurseRecords.map(record => {
+                        // 格式化时间
+                        const formattedTime = formatTime(record.time);
+
+                        // 格式化日期
+                        const date = new Date(record.date);
+                        const formattedDate = date.toLocaleString();
+
+                        return {
+                            [t.excelHeaders.name]: record.name || '',
+                            [t.excelHeaders.difficulty]: t.difficultyNames[record.difficulty] || '',
+                            [t.excelHeaders.errors]: record.errors,
+                            [t.excelHeaders.hints]: record.hints,
+                            [t.excelHeaders.time]: formattedTime,
+                            [t.excelHeaders.date]: formattedDate
+                        };
+                    });
+
+                    // 创建工作表
+                    const ws = XLSX.utils.json_to_sheet(exportData);
+                    // 将工作表添加到工作簿，使用护工名作为表名（限制长度为31字符）
+                    XLSX.utils.book_append_sheet(wb, ws, nurseName.substring(0, 31));
+                });
+
+                // 创建一个包含所有记录的汇总表
+                const allRecordsData = filteredRecords.map(record => {
+                    const formattedTime = formatTime(record.time);
+                    const date = new Date(record.date);
+                    const formattedDate = date.toLocaleString();
+                    const nurseName = record.nurse || (currentLanguage === 'en-US' ? "Unknown Nurse" : "未知护工");
+
+                    return {
+                        [t.excelHeaders.name]: record.name || '',
+                        [currentLanguage === 'en-US' ? 'Nurse' : '护工']: nurseName,
+                        [t.excelHeaders.difficulty]: t.difficultyNames[record.difficulty] || '',
+                        [t.excelHeaders.errors]: record.errors,
+                        [t.excelHeaders.hints]: record.hints,
+                        [t.excelHeaders.time]: formattedTime,
+                        [t.excelHeaders.date]: formattedDate
+                    };
+                });
+
+                const allRecordsWs = XLSX.utils.json_to_sheet(allRecordsData);
+                XLSX.utils.book_append_sheet(wb, allRecordsWs, currentLanguage === 'en-US' ? "All Records" : "所有记录");
+
+                // 生成Excel文件并下载
+                const fileName = `数独游戏记录_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                // 语音提示导出成功
+                speak('exportSuccess', null, { count: filteredRecords.length });
+            }
+
+            // 蓝牙相关函数
+            function checkBluetoothSupport() {
+                if (!navigator.bluetooth) {
+                    alert('你的浏览器不支持Web Bluetooth API，请使用Chrome或Edge浏览器');
+                    return false;
+                }
+                return true;
+            }
+
+            async function requestBluetoothDevice() {
+                if (!checkBluetoothSupport()) return;
+
+                try {
+                    // 显示加载状态
+                    bluetoothDevices.innerHTML = `<div class="text-center py-4 text-gray-500">${translations[currentLanguage].bluetoothSearching}</div>`;
+
+                    // 请求蓝牙设备 - 搜索音频相关服务
+                    const device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: [
+                            '0000ffe0-0000-1000-8000-00805f9b34fb', // 通用BLE服务UUID
+                            '0000180a-0000-1000-8000-00805f9b34fb'  // 设备信息服务
+                        ]
+                    });
+
+                    // 监听设备断开连接事件
+                    device.addEventListener('gattserverdisconnected', handleDisconnection);
+
+                    return device;
+                } catch (error) {
+                    console.error('蓝牙设备请求失败:', error);
+                    bluetoothDevices.innerHTML = `<div class="text-center py-4 text-danger">${translations[currentLanguage].bluetoothNoDevices}</div>`;
+                    return null;
+                }
+            }
+
+            async function connectToDevice(device) {
+                if (!device) return false;
+
+                try {
+                    // 显示连接状态
+                    bluetoothConnectBtn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${translations[currentLanguage].bluetoothConnecting}`;
+
+                    // 连接到GATT服务器
+                    const server = await device.gatt.connect();
+
+                    // 获取主服务 (根据你的ESP32服务UUID修改)
+                    const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+
+                    // 获取特征值 (根据你的ESP32特征值UUID修改)
+                    bluetoothCharacteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+
+                    bluetoothDevice = device;
+                    bluetoothServer = server;
+                    bluetoothConnected = true;
+
+                    // 更新UI
+                    updateUIText();
+                    bluetoothStatus.classList.remove('hidden');
+                    bluetoothModal.classList.add('hidden');
+
+                    // 语音提示连接成功
+                    speak('bluetoothConnected', null, { name: device.name || 'Unknown' });
+                    return true;
+                } catch (error) {
+                    console.error('蓝牙连接失败:', error);
+                    speak('bluetoothConnectFailed');
+                    bluetoothConnectBtn.innerHTML = `<i class="fa fa-bluetooth"></i> ${translations[currentLanguage].bluetoothBtn}`;
+                    return false;
+                }
+            }
+
+            function handleDisconnection(event) {
+                const device = event.target;
+                console.log(`设备 ${device.name} 已断开连接`);
+
+                bluetoothConnected = false;
+                bluetoothServer = null;
+                bluetoothCharacteristic = null;
+
+                // 更新UI
+                updateUIText();
+                speak('bluetoothDisconnected');
+            }
+
+            async function disconnectFromDevice() {
+                if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                    await bluetoothDevice.gatt.disconnect();
+                    bluetoothConnected = false;
+                    bluetoothServer = null;
+                    bluetoothCharacteristic = null;
+
+                    // 更新UI
+                    updateUIText();
+                    speak('bluetoothDisconnected');
+                }
+            }
+
+            async function scanBluetoothDevices() {
+                if (!checkBluetoothSupport()) return;
+
+                const device = await requestBluetoothDevice();
+                if (device) {
+                    // 显示找到的设备
+                    bluetoothDevices.innerHTML = '';
+                    const deviceEl = document.createElement('div');
+                    deviceEl.className = 'flex justify-between items-center p-3 border border-gray-200 rounded-lg';
+                    deviceEl.innerHTML = `
+                        <div>
+                            <div class="font-medium">${device.name || '未知设备'}</div>
+                            <div class="text-sm text-gray-500">${device.id}</div>
+                        </div>
+                        <button class="bluetooth-btn text-sm px-3 py-1" data-device-id="${device.id}">
+                            ${translations[currentLanguage].bluetoothConnect}
+                        </button>
+                    `;
+                    bluetoothDevices.appendChild(deviceEl);
+
+                    // 添加连接事件
+                    deviceEl.querySelector('button').addEventListener('click', async () => {
+                        await connectToDevice(device);
+                    });
+                }
+            }
+
+            // 生成数独棋盘UI
+            function generateBoardUI() {
+                sudokuBoardEl.innerHTML = ''; // 清空现有内容
+
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('sudoku-cell');
+
+                        // 添加粗边框（每3行/列）
+                        if ((col + 1) % 3 === 0 && col !== 8) {
+                            cell.classList.add('sudoku-cell-thick-right');
+                        }
+                        if ((row + 1) % 3 === 0 && row !== 8) {
+                            cell.classList.add('sudoku-cell-thick-bottom');
+                        }
+
+                        // 设置数据属性
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+
+                        // 添加点击事件
+                        cell.addEventListener('click', () => selectCell(cell, row, col));
+
+                        sudokuBoardEl.appendChild(cell);
+                    }
+                }
+            }
+
+            // 选择单元格
+            function selectCell(cellElement, row, col) {
+                // 只有非初始数字的格子可以被选中
+                if (originalBoard[row][col] !== 0) {
+                    // 如果点击的是初始数字，取消选择状态并禁用提示按钮
+                    if (selectedCell) {
+                        selectedCell.element.classList.remove('bg-primary/20');
+                        selectedCell = null;
+                        hintBtn.disabled = true;
+                        hintBtn.classList.add('hint-btn-disabled');
+                    }
+                    return;
+                }
+
+                // 移除之前选中单元格的样式
+                if (selectedCell) {
+                    selectedCell.element.classList.remove('bg-primary/20');
+                }
+
+                // 移除任何提示样式
+                document.querySelectorAll('.hint-cell').forEach(cell => {
+                    cell.classList.remove('hint-cell');
+                });
+
+                // 设置新的选中单元格
+                selectedCell = {
+                    row,
+                    col,
+                    element: cellElement
+                };
+
+                // 添加选中样式
+                cellElement.classList.add('bg-primary/20');
+
+                // 启用提示按钮
+                hintBtn.disabled = false;
+                hintBtn.classList.remove('hint-btn-disabled');
+
+                // 语音提示选中的位置
+                if (speechEnabled) {
+                    const rowNum = row + 1;
+                    const colNum = col + 1;
+                    speak('selectedCell', null, { row: rowNum, col: colNum });
+                }
+            }
+
+            // 生成完整的数独解
+            function generateFullSudoku() {
+                const board = Array(9).fill().map(() => Array(9).fill(0));
+
+                // 递归填充数独
+                function fillBoard() {
+                    for (let row = 0; row < 9; row++) {
+                        for (let col = 0; col < 9; col++) {
+                            if (board[row][col] === 0) {
+                                // 尝试1-9的随机排列
+                                const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+
+                                for (const num of numbers) {
+                                    if (isValidMove(board, row, col, num)) {
+                                        board[row][col] = num;
+
+                                        // 递归填充下一个格子
+                                        if (fillBoard()) {
+                                            return true;
+                                        }
+
+                                        // 回溯
+                                        board[row][col] = 0;
+                                    }
+                                }
+
+                                // 没有可用数字，回溯
+                                return false;
+                            }
+                        }
+                    }
+
+                    // 棋盘已填满
+                    return true;
+                }
+
+                fillBoard();
+                return board;
+            }
+
+            // 检查移动是否有效
+            function isValidMove(board, row, col, num) {
+                // 检查行
+                for (let i = 0; i < 9; i++) {
+                    if (board[row][i] === num) return false;
+                }
+
+                // 检查列
+                for (let i = 0; i < 9; i++) {
+                    if (board[i][col] === num) return false;
+                }
+
+                // 检查3x3宫格
+                const startRow = Math.floor(row / 3) * 3;
+                const startCol = Math.floor(col / 3) * 3;
+
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (board[startRow + i][startCol + j] === num) return false;
+                    }
+                }
+
+                return true;
+            }
+
+            // 挖空生成谜题
+            function createPuzzle(fullBoard, emptyCells) {
+                const puzzle = fullBoard.map(row => [...row]);
+                let cellsToEmpty = emptyCells;
+
+                while (cellsToEmpty > 0) {
+                    const row = Math.floor(Math.random() * 9);
+                    const col = Math.floor(Math.random() * 9);
+
+                    if (puzzle[row][col] !== 0) {
+                        puzzle[row][col] = 0;
+                        cellsToEmpty--;
+                    }
+                }
+
+                return puzzle;
+            }
+
+            // 生成新的数独游戏
+            function generateNewGame(difficulty) {
+                currentDifficulty = difficulty;
+                errorCount = 0;
+                hintCount = 0;
+                updateErrorCount();
+
+                let fullSudoku = generateFullSudoku();
+                let puzzle;
+                if (difficulty === 5) {
+                    // 练习模式：每行只空一个格子
+                    puzzle = fullSudoku.map(row => [...row]);
+                    for (let row = 0; row < 9; row++) {
+                        const col = Math.floor(Math.random() * 9);
+                        puzzle[row][col] = 0;
+                    }
+                } else {
+                    const emptyCells = [60, 50, 40, 30, 20][difficulty];
+                    puzzle = createPuzzle(fullSudoku, emptyCells);
+                }
+
+                sudokuBoard = puzzle;
+                originalBoard = puzzle.map(row => [...row]);
+                solutionBoard = fullSudoku;
+
+                renderBoard();
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                timeElapsed = 0;
+                updateTimerDisplay();
+
+                if (selectedCell) {
+                    selectedCell.element.classList.remove('bg-primary/20');
+                    selectedCell = null;
+                }
+                hintBtn.disabled = true;
+                hintBtn.classList.add('hint-btn-disabled');
+
+                isPlaying = true;
+                startTimer();
+
+                speak('gameStarted', BLE_COMMANDS.GAME_START, {
+                    difficulty: translations[currentLanguage].difficultyNames[difficulty]
+                });
+            }
+
+            // 渲染棋盘数据到UI
+            function renderBoard() {
+                const cells = sudokuBoardEl.querySelectorAll('.sudoku-cell');
+                cells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const value = sudokuBoard[row][col];
+
+                    // 清空单元格
+                    cell.textContent = value !== 0 ? value : '';
+                    cell.classList.remove('bg-primary/20', 'bg-danger/20', 'text-primary', 'text-danger', 'hint-cell');
+
+                    // 原始数字设置不同样式
+                    if (originalBoard[row][col] !== 0) {
+                        cell.classList.add('font-bold', 'text-gray-700');
+                    } else {
+                        cell.classList.remove('font-bold', 'text-gray-700');
+                        // 已填入但错误的数字
+                        if (value !== 0 && value !== solutionBoard[row][col]) {
+                            cell.classList.add('text-danger', 'bg-danger/20');
+                        }
+                        // 已填入且正确的数字
+                        else if (value !== 0) {
+                            cell.classList.add('text-primary', 'bg-primary/20');
+                        }
+                    }
+                });
+            }
+
+            // 输入数字并播报
+            function inputNumber(number) {
+                if (!selectedCell || !isPlaying) return;
+
+                const { row, col, element } = selectedCell;
+
+                // 不能修改初始数字
+                if (originalBoard[row][col] !== 0) return;
+
+                // 移除提示样式
+                element.classList.remove('hint-cell');
+
+                // 更新数值
+                sudokuBoard[row][col] = number;
+
+                // 检查是否正确
+                if (number !== solutionBoard[row][col]) {
+                    // 错误时增加错误计数
+                    errorCount++;
+                    updateErrorCount();
+
+                    element.classList.remove('text-primary', 'bg-primary/20');
+                    element.classList.add('text-danger', 'bg-danger/20');
+                    speak('wrong', BLE_COMMANDS.WRONG_INPUT);
+                } else {
+                    element.classList.remove('text-danger', 'bg-danger/20');
+                    element.classList.add('text-primary', 'bg-primary/20');
+                    speak('correct', BLE_COMMANDS.CORRECT_INPUT);
+                }
+
+                element.textContent = number;
+
+                // 检查是否完成
+                checkCompletion();
+            }
+
+            function checkCompletion() {
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        if (sudokuBoard[row][col] === 0) {
+                            return false; // 还有空格子
+                        }
+                        if (sudokuBoard[row][col] !== solutionBoard[row][col]) {
+                            return false; // 有错误数字
+                        }
+                    }
+                }
+
+                isPlaying = false;
+                clearInterval(timerInterval);
+                timerInterval = null;
+
+                // 允许加载存档
+                loadBtn.disabled = false;
+                loadBtn.classList.remove('cursor-not-allowed', 'opacity-50');
+
+                // 获取当前用户名
+                const info = getCurrentUserInfo();
+                const playerName = info.username || (currentLanguage === 'en-US' ? 'Anonymous' : '匿名玩家');
+
+                // 判断是否为练习模式
+                if (currentDifficulty === 5) {
+                    // 练习模式结算
+                    winModal.innerHTML = `
+                        <div class="bg-white p-8 rounded-xl text-center max-w-md w-full">
+                            <h2 class="text-2xl font-bold text-secondary mb-4">恭喜你完成练习模式！</h2>
+                            <p class="text-gray-700 mb-6">现在开启正式的数独游戏吧！</p>
+                            <button id="start-formal-btn" class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors">
+                                开始正式游戏
+                            </button>
+                        </div>
+                    `;
+                    winModal.classList.remove('hidden');
+                    // 语音播报（包含用户名）
+                    speak(null, null, { rawText: `恭喜${playerName}完成练习模式，现在开启正式的数独游戏吧！` });
+
+                    // 按钮事件：开始正式游戏（默认中等难度）
+                    document.getElementById('start-formal-btn').onclick = function () {
+                        winModal.classList.add('hidden');
+                        generateNewGame(2); // 2为中等难度
+                    };
+                } else {
+                    // 正式模式结算
+                    winModal.innerHTML = `
+                        <div class="bg-white p-8 rounded-xl text-center max-w-md w-full">
+                            <h2 class="text-2xl font-bold text-secondary mb-2">${translations[currentLanguage].winTitle}</h2>
+                            <p class="text-gray-600 mb-4">${translations[currentLanguage].winMessage}</p>
+                            <p class="text-gray-700 mb-2">${translations[currentLanguage].winTime}<span id="win-time" class="font-bold">${formatTime(timeElapsed)}</span></p>
+                            <p class="text-gray-700 mb-2">${translations[currentLanguage].winErrors}<span id="win-errors" class="font-bold">${typeof errorCount === 'number' ? errorCount : 0}</span></p >
+                            <p class="text-gray-700 mb-6">${translations[currentLanguage].winHints}<span id="win-hints" class="font-bold text-hint">${typeof hintCount === 'number' ? hintCount : 0}</span></p >
+                            <p class="text-gray-700 mb-4">难度：${translations[currentLanguage].difficultyNames[currentDifficulty]}</p>
+                            <button id="save-score-btn" class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/80 transition-colors">
+                                ${translations[currentLanguage].saveScore}
+                            </button>
+                        </div>
+                    `;
+                    winModal.classList.remove('hidden');
+                    // 语音播报祝贺语，包含用户名
+                    speak(null, BLE_COMMANDS.GAME_END, { rawText: `恭喜${playerName}完成数独挑战！` });
+
+                    // 保存成绩按钮事件
+                    document.getElementById('save-score-btn').onclick = saveScore;
+                }
+                return true;
+            }
+
+            // 清除选中单元格的数字
+            function eraseNumber() {
+                if (!selectedCell) return;
+
+                const { row, col, element } = selectedCell;
+
+                // 不能清除初始数字
+                if (originalBoard[row][col] !== 0) return;
+
+                // 移除提示样式
+                element.classList.remove('hint-cell');
+
+                // 清除数值
+                sudokuBoard[row][col] = 0;
+                element.textContent = '';
+                element.classList.remove('text-danger', 'text-primary', 'bg-danger/20', 'bg-primary/20');
+
+                // 语音提示
+                speak('cleared');
+            }
+
+            // 重置当前游戏
+            function resetGame() {
+                // 恢复初始状态
+                sudokuBoard = originalBoard.map(row => [...row]);
+                hintCount = 0;
+                errorCount = 0;
+                renderBoard();
+
+                // 重置选择状态和提示按钮
+                if (selectedCell) {
+                    selectedCell.element.classList.remove('bg-primary/20');
+                    selectedCell = null;
+                }
+                hintBtn.disabled = true;
+                hintBtn.classList.add('hint-btn-disabled');
+
+                // 重置计时器
+                if (isPlaying) {
+                    timeElapsed = 0;
+                    updateTimerDisplay();
+                    updateErrorCount();
+
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                    }
+
+                    startTimer();
+                }
+
+                // 语音提示
+                speak('gameReset');
+            }
+
+            // 开始计时器
+            function startTimer() {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+
+                if (isCountdown) {
+                    // 倒计时模式 - 使用用户设置的时间
+                    countdownTime = parseInt(countdownInput.value) * 60;
+                    timeElapsed = countdownTime;
+                    timerInterval = setInterval(() => {
+                        timeElapsed--;
+                        updateTimerDisplay();
+
+                        // 倒计时结束
+                        if (timeElapsed <= 0) {
+                            clearInterval(timerInterval);
+                            timerInterval = null;
+                            isPlaying = false;
+                            speak('timeUp', BLE_COMMANDS.TIME_UP);
+                            alert(translations[currentLanguage].timeUp);
+                        }
+                        // 剩余10秒提醒
+                        else if (timeElapsed === 10) {
+                            speak('timeWarning', BLE_COMMANDS.TIME_WARNING);
+                        }
+                    }, 1000);
+                } else {
+                    // 正向计时模式
+                    timerInterval = setInterval(() => {
+                        timeElapsed++;
+                        updateTimerDisplay();
+                    }, 1000);
+                }
+            }
+
+            // 更新计时器显示
+            function updateTimerDisplay() {
+                timerDisplay.textContent = formatTime(timeElapsed);
+            }
+
+            // 格式化时间显示
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            // 切换计时模式
+            function toggleTimerMode() {
+                isCountdown = !isCountdown;
+
+                if (isCountdown) {
+                    timerToggle.innerHTML = `<i class="fa fa-clock-o mr-1"></i> ${translations[currentLanguage].timerToggleAlt}`;
+                    countdownSettings.classList.remove('hidden');
+                    countdownSettings.classList.add('flex');
+                    speak('countdownMode');
+                } else {
+                    timerToggle.innerHTML = `<i class="fa fa-clock-o mr-1"></i> ${translations[currentLanguage].timerToggle}`;
+                    countdownSettings.classList.remove('flex');
+                    countdownSettings.classList.add('hidden');
+                    speak('timerMode');
+                }
+
+                // 如果游戏正在进行，重启计时器
+                if (isPlaying) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    startTimer();
+                }
+            }
+
+            // 切换语音功能
+            function toggleSpeech() {
+                speechEnabled = !speechEnabled;
+
+                if (speechEnabled) {
+                    toggleSpeechBtn.innerHTML = `<i class="fa fa-volume-up mr-1"></i> ${translations[currentLanguage].toggleSpeechBtn}`;
+                    speak('speechOn');
+                } else {
+                    toggleSpeechBtn.innerHTML = `<i class="fa fa-volume-off mr-1"></i> ${translations[currentLanguage].toggleSpeechBtn}`;
+                    // 停止任何正在播放的语音
+                    speechSynthesis.cancel();
+                }
+            }
+
+            function getCurrentUserInfo() {
+                const userInfo = JSON.parse(localStorage.getItem('sudokuUserInfo') || '{}');
+                return {
+                    username: userInfo.username || '',
+                    nurse: userInfo.nurse || ''
+                };
+            }
+
+            function ensureUserInfo(callback) {
+                const info = getCurrentUserInfo();
+                if (!info.username || !info.nurse) {
+                    // 打开用户信息输入框，确认后再执行回调
+                    userModal.classList.remove('hidden');
+                    userModalConfirm.onclick = function () {
+                        saveUserInfo();
+                        userModal.classList.add('hidden');
+                        if (typeof callback === 'function') callback();
+                    };
+                    userModalCancel.onclick = function () {
+                        userModal.classList.add('hidden');
+                    };
+                    return false;
+                }
+                return true;
+            }
+
+            function setDifficultyAndStart(difficulty) {
+                currentDifficulty = difficulty;
+                // 更新按钮样式
+                difficultyBtns.forEach(btn => {
+                    btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                });
+                event.currentTarget.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+                // 检查用户信息
+                if (!ensureUserInfo(() => generateNewGame(difficulty))) return;
+                // 直接开始新游戏
+                generateNewGame(difficulty);
+            }
+
+            // 保存成绩到本地存储 - 包含护工信息
+            function saveScore() {
+                const info = getCurrentUserInfo();
+                const playerName = info.username || (currentLanguage === 'en-US' ? 'Anonymous' : '匿名玩家');
+                const nurseName = info.nurse || (currentLanguage === 'en-US' ? 'Unknown Nurse' : '未知护工');
+                const timeInSeconds = timeElapsed;
+                const difficulty = currentDifficulty;
+                let scores = JSON.parse(localStorage.getItem('sudokuScores') || '[]');
+                // 修复：始终保存提示次数，未用时为0
+                scores.push({
+                    name: playerName,
+                    nurse: nurseName,
+                    time: timeInSeconds,
+                    difficulty: difficulty,
+                    errors: errorCount,
+                    hints: typeof hintCount === 'number' ? hintCount : 0, // 保证为数字
+                    date: new Date().toISOString()
+                });
+                localStorage.setItem('sudokuScores', JSON.stringify(scores));
+                winModal.classList.add('hidden');
+                // 语音播报保存成绩，包含用户名
+                speak('scoreSaved', null, { name: playerName });
+                showRanking();
+            }
+
+            // 显示排行榜
+            function showRanking() {
+                const selectedDifficulty = rankingDifficulty.value;
+
+                // 从本地存储获取成绩
+                let scores = JSON.parse(localStorage.getItem('sudokuScores') || '[]');
+                const t = translations[currentLanguage];
+
+                // 过滤掉练习模式（难度5）的成绩
+                scores = scores.filter(score => score.difficulty !== 5);
+
+                // 根据选择的难度筛选成绩
+                if (selectedDifficulty !== 'all') {
+                    scores = scores.filter(score => score.difficulty === parseInt(selectedDifficulty));
+                }
+
+                // 排序：难度从高到低，时间从短到长，错误次数从少到多，提示次数从少到多
+                scores.sort((a, b) => {
+                    if (a.difficulty !== b.difficulty) {
+                        return b.difficulty - a.difficulty; // 难度高的排前面
+                    }
+                    if (a.time !== b.time) {
+                        return a.time - b.time; // 时间少的排前面
+                    }
+                    if (a.errors !== b.errors) {
+                        return a.errors - b.errors; // 错误少的排前面
+                    }
+                    return a.hints - b.hints; // 提示少的排前面
+                });
+
+                // 只显示前十名
+                const topScores = scores.slice(0, 10);
+
+                // 更新排行榜显示
+                rankingList.innerHTML = '';
+
+                if (topScores.length === 0) {
+                    rankingList.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">
+                                ${currentLanguage === 'en-US' ? 'No score records' : '暂无成绩记录'}
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                topScores.forEach((score, index) => {
+                    const rank = index + 1;
+                    const difficultyName = t.difficultyNames[score.difficulty];
+                    const timeStr = formatTime(score.time);
+
+                    // 获取排名的文字表示
+                    let rankText;
+                    switch (rank) {
+                        case 1: rankText = t.firstPlace; break;
+                        case 2: rankText = t.secondPlace; break;
+                        case 3: rankText = t.thirdPlace; break;
+                        case 4: rankText = t.fourthPlace; break;
+                        case 5: rankText = t.fifthPlace; break;
+                        case 6: rankText = t.sixthPlace; break;
+                        case 7: rankText = t.seventhPlace; break;
+                        case 8: rankText = t.eighthPlace; break;
+                        case 9: rankText = t.ninthPlace; break;
+                        case 10: rankText = t.tenthPlace; break;
+                    }
+
+                    // 修复：兼容旧数据，未用提示时显示0
+                    const hintCount = typeof score.hints === 'number' ? score.hints : 0;
+
+                    const row = document.createElement('tr');
+                    row.className = rank <= 3 ? 'font-bold' : '';
+
+                    row.innerHTML = `
+                        <td class="ranking-cell">
+                            <span class="${rank === 1 ? 'text-yellow-500 font-bold' :
+                            rank === 2 ? 'text-gray-400 font-bold' :
+                                rank === 3 ? 'text-amber-700 font-bold' :
+                                    'text-gray-500'
+                        }">#${rank}</span>
+                        </td>
+                        <td class="ranking-cell">${score.name}</td>
+                        <td class="ranking-cell">${difficultyName}</td>
+                        <td class="ranking-cell">${score.errors}</td>
+                        <td class="ranking-cell text-hint">${hintCount}</td>
+                        <td class="ranking-cell font-medium">${timeStr}</td>
+                        <td class="ranking-cell">
+                            <button class="rank-speaker-btn" 
+                                    data-name="${score.name}" 
+                                    data-difficulty="${difficultyName}" 
+                                    data-rank="${rankText}"
+                                    data-time="${timeStr}">
+                                <i class="fa fa-volume-up"></i>
+                            </button>
+                        </td>
+                    `;
+
+                    rankingList.appendChild(row);
+                });
+
+                // 添加喇叭图标的点击事件
+                document.querySelectorAll('.rank-speaker-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const name = this.getAttribute('data-name');
+                        const difficulty = this.getAttribute('data-difficulty');
+                        const rank = this.getAttribute('data-rank');
+                        const time = this.getAttribute('data-time');
+                        speakRank(name, difficulty, rank, time);
+                    });
+                });
+
+                // 显示排行榜模态框
+                rankingModal.classList.remove('hidden');
+            }
+
+            // 事件监听 - 存档相关
+            saveBtn.addEventListener('click', openSaveModal);
+            loadBtn.addEventListener('click', openLoadModal);
+            cancelSaveLoadBtn.addEventListener('click', () => {
+                saveLoadModal.classList.add('hidden');
+            });
+            confirmSaveLoadBtn.addEventListener('click', confirmSaveLoad);
+
+            saveSlots.forEach((slot, index) => {
+                slot.addEventListener('click', () => {
+                    currentSaveSlot = index;
+                    saveSlots.forEach((s, i) => {
+                        s.classList.toggle('save-slot-active', i === index);
+                    });
+                });
+            });
+
+            // 事件监听 - 蓝牙相关
+            bluetoothConnectBtn.addEventListener('click', async () => {
+                if (bluetoothConnected) {
+                    // 如果已连接，则断开连接
+                    await disconnectFromDevice();
+                } else {
+                    // 否则显示设备选择模态框并开始扫描
+                    bluetoothModal.classList.remove('hidden');
+                    await scanBluetoothDevices();
+                }
+            });
+
+            cancelBluetoothBtn.addEventListener('click', () => {
+                bluetoothModal.classList.add('hidden');
+            });
+
+            refreshBluetoothBtn.addEventListener('click', async () => {
+                await scanBluetoothDevices();
+            });
+
+            // 提示按钮事件
+            hintBtn.addEventListener('click', showHint);
+
+            // 其他事件监听
+            resetBtn.addEventListener('click', resetGame);
+            eraseBtn.addEventListener('click', eraseNumber);
+            timerToggle.addEventListener('click', toggleTimerMode);
+            toggleSpeechBtn.addEventListener('click', toggleSpeech);
+            saveScoreBtn.addEventListener('click', saveScore);
+            rankingBtn.addEventListener('click', showRanking);
+            closeRankingBtn.addEventListener('click', () => {
+                rankingModal.classList.add('hidden');
+            });
+            rankingDifficulty.addEventListener('change', showRanking);
+            languageSelector.addEventListener('change', (e) => {
+                changeLanguage(e.target.value);
+            });
+
+            // 数字键盘事件
+            numberKeys.forEach(key => {
+                key.addEventListener('click', () => {
+                    const number = parseInt(key.dataset.number);
+                    inputNumber(number);
+                });
+            });
+
+            // 难度选择事件 - 点击直接开始游戏
+            difficultyBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    setDifficultyAndStart(parseInt(this.dataset.difficulty));
+                });
+            });
+
+            // 键盘输入支持
+            document.addEventListener('keydown', (e) => {
+                // 数字键 1-9
+                if (e.key >= '1' && e.key <= '9') {
+                    inputNumber(parseInt(e.key));
+                }
+                // 删除键
+                else if (e.key === 'Backspace' || e.key === 'Delete') {
+                    eraseNumber();
+                }
+                // 问号键或H键触发提示
+                else if (e.key === '?' || e.key.toLowerCase() === 'h') {
+                    showHint();
+                }
+            });
+
+            // 点击模态框外部关闭
+            winModal.addEventListener('click', (e) => {
+                if (e.target === winModal) {
+                    winModal.classList.add('hidden');
+                }
+            });
+
+            rankingModal.addEventListener('click', (e) => {
+                if (e.target === rankingModal) {
+                    rankingModal.classList.add('hidden');
+                }
+            });
+
+            bluetoothModal.addEventListener('click', (e) => {
+                if (e.target === bluetoothModal) {
+                    bluetoothModal.classList.add('hidden');
+                }
+            });
+
+            saveLoadModal.addEventListener('click', (e) => {
+                if (e.target === saveLoadModal) {
+                    saveLoadModal.classList.add('hidden');
+                }
+            });
+
+            // 初始化游戏和语音
+            initSpeech();
+            generateBoardUI(); // 生成棋盘UI
+            // 初始化棋盘数据
+            sudokuBoard = Array(9).fill().map(() => Array(9).fill(0));
+            originalBoard = Array(9).fill().map(() => Array(9).fill(0));
+            solutionBoard = Array(9).fill().map(() => Array(9).fill(0));
+            renderBoard();
+            // 默认选中中等难度
+            difficultyBtns[2].classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+            // 加载存档信息
+            updateSaveSlotInfo();
+            // 初始化翻译
+            updateTranslations();
+
+            // 初始语音提示
+            setTimeout(() => {
+                speak('welcome');
+            }, 1000);
+
+            // 用户信息相关
+            const currentUserEl = document.getElementById('current-user');
+            const currentNurseEl = document.getElementById('current-nurse');
+            const editUserBtn = document.getElementById('edit-user-btn');
+            const userModal = document.getElementById('user-modal');
+            const userNameInput = document.getElementById('user-name-input');
+            const nurseNameInput = document.getElementById('nurse-name-input');
+            const userModalConfirm = document.getElementById('user-modal-confirm');
+            const userModalCancel = document.getElementById('user-modal-cancel');
+            const userHistoryDatalist = document.getElementById('user-history');
+            const nurseHistoryDatalist = document.getElementById('nurse-history');
+
+            // 从本地存储加载用户信息
+            function loadUserInfo() {
+                const userInfo = JSON.parse(localStorage.getItem('sudokuUserInfo') || '{}');
+
+                if (userInfo.username) {
+                    currentUserEl.textContent = userInfo.username;
+                    userNameInput.value = userInfo.username;
+                }
+
+                if (userInfo.nurse) {
+                    currentNurseEl.textContent = userInfo.nurse;
+                    nurseNameInput.value = userInfo.nurse;
+                }
+            }
+
+            // 保存用户信息到本地存储
+            function saveUserInfo() {
+                const username = userNameInput.value.trim();
+                const nurse = nurseNameInput.value.trim();
+                if (!username || !nurse) {
+                    alert('用户名和护工名不能为空');
+                    return;
+                }
+                const userInfo = { username, nurse };
+                localStorage.setItem('sudokuUserInfo', JSON.stringify(userInfo));
+                currentUserEl.textContent = username;
+                currentNurseEl.textContent = nurse;
+                // 保存历史
+                let userHistory = JSON.parse(localStorage.getItem('userHistory') || '[]');
+                if (!userHistory.includes(username)) {
+                    userHistory.push(username);
+                    localStorage.setItem('userHistory', JSON.stringify(userHistory));
+                }
+                let nurseHistory = JSON.parse(localStorage.getItem('nurseHistory') || '[]');
+                if (!nurseHistory.includes(nurse)) {
+                    nurseHistory.push(nurse);
+                    localStorage.setItem('nurseHistory', JSON.stringify(nurseHistory));
+                }
+                loadHistory();
+                speak('scoreSaved', null, { name: username });
+                userModal.classList.add('hidden');
+            }
+
+            // 显示用户信息输入模态框
+            editUserBtn.addEventListener('click', () => {
+                userModal.classList.remove('hidden');
+            });
+
+            // 取消按钮事件
+            userModalCancel.addEventListener('click', () => {
+                userModal.classList.add('hidden');
+            });
+
+            // 确认按钮事件
+            userModalConfirm.addEventListener('click', saveUserInfo);
+
+            // 加载历史记录到数据列表
+            function loadHistory() {
+                const userHistory = JSON.parse(localStorage.getItem('userHistory') || '[]');
+                const nurseHistory = JSON.parse(localStorage.getItem('nurseHistory') || '[]');
+
+                // 清空现有选项
+                userHistoryDatalist.innerHTML = '';
+                nurseHistoryDatalist.innerHTML = '';
+
+                // 添加历史记录到数据列表
+                userHistory.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    userHistoryDatalist.appendChild(option);
+                });
+
+                nurseHistory.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    nurseHistoryDatalist.appendChild(option);
+                });
+            }
+
+            // 初始化用户信息和历史记录
+            loadUserInfo();
+            loadHistory();
+        });
+    </script>
+</body>
+
+</html>

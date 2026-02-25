@@ -1,0 +1,191 @@
+[
+  {
+    "action_name": "\u521d\u59cb\u52a8\u4f5c",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u521d\u59cb\u52a8\u4f5c.png",
+    "joint_angles": [
+      511,
+      380,
+      461,
+      501,
+      661,
+      593,
+      745,
+      417,
+      509,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c91",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c91.png",
+    "joint_angles": [
+      649,
+      488,
+      227,
+      260,
+      660,
+      566,
+      745,
+      417,
+      509,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c9\u5c712",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c9\u5c712.png",
+    "joint_angles": [
+      665,
+      380,
+      227,
+      435,
+      618,
+      811,
+      745,
+      417,
+      510,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c9\u5c713",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c9\u5c713.png",
+    "joint_angles": [
+      773,
+      380,
+      503,
+      537,
+      595,
+      802,
+      745,
+      417,
+      510,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c9\u5c712",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c9\u5c712.png",
+    "joint_angles": [
+      665,
+      380,
+      227,
+      435,
+      618,
+      811,
+      745,
+      417,
+      510,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c91",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c91.png",
+    "joint_angles": [
+      649,
+      488,
+      227,
+      260,
+      660,
+      566,
+      745,
+      417,
+      509,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c9\u5c712",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c9\u5c712.png",
+    "joint_angles": [
+      665,
+      380,
+      227,
+      435,
+      618,
+      811,
+      745,
+      417,
+      510,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u6b63\u53cd\u4e91\u624b\u62c9\u5c713",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u6b63\u53cd\u4e91\u624b\u62c9\u5c713.png",
+    "joint_angles": [
+      773,
+      380,
+      503,
+      537,
+      595,
+      802,
+      745,
+      417,
+      510,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u521d\u59cb\u52a8\u4f5c",
+    "duration": 1.0,
+    "image_path": "action_groups\\\u521d\u59cb\u52a8\u4f5c.png",
+    "joint_angles": [
+      511,
+      380,
+      461,
+      501,
+      661,
+      593,
+      745,
+      417,
+      509,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

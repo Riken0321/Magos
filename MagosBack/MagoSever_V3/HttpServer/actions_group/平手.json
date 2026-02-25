@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "平手",
+    "duration": 1,
+    "image_path": "action_groups\\平手.png",
+    "joint_angles": [
+      359,
+      512,
+      254,
+      643,
+      436,
+      792,
+      518,
+      1000,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据筛选展示</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .filter-container {
+            margin: 20px 0;
+        }
+
+        select {
+            padding: 5px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>数据筛选展示</h1>
+    <div class="filter-container">
+        <label for="dateFilter">日期：</label>
+        <select id="dateFilter" onchange="combineFilters()"></select>
+
+        <label for="elderNameFilter">老人名：</label>
+        <select id="elderNameFilter" onchange="combineFilters()"></select>
+
+        <label for="caregiverNameFilter">护工名：</label>
+        <select id="caregiverNameFilter" onchange="combineFilters()"></select>
+
+        <label for="movementTypeFilter">动作：</label>
+        <select id="movementTypeFilter" onchange="combineFilters()"></select>
+
+        <button onclick="resetFilters()">重置</button>
+
+        <button onclick="exportToExcel()">导出Excel</button>
+
+        <a href="{{request.host_url}}/to_habcam">
+            <button>返回运动识别</button>
+        </a>
+    </div>
+
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>老人名</th>
+                <th>护工名</th>
+                <th>动作</th>
+                <th>侧别</th>
+                <th>最大角度</th>
+                <th>合格情况</th>
+                <th>是否存在图片</th>
+                <th>删除数据</th>
+                <th>是否导出</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+    </table>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // 用于存储从服务器获取的JSON数据
+        let jsonData = [];
+
+        // 从服务器获取JSON数据并初始化
+        function fetchData() {
+            // 使用fetch请求从服务器获取JSON数据
+            fetch('http://117.72.15.78:3000/request-movement')
+                .then(response => response.json())  // 将响应转换为JSON
+                .then(data => {
+                    console.log('Received data:', data);  // 打印接收到的数据
+                    // 验证数据是否是数组
+                    if (Array.isArray(data)) {
+                        jsonData = data;  // 将数据存储在全局变量
+                        renderTable(jsonData);  // 渲染表格
+                        updateAllFilters();  // 初始化筛选条件
+                    } else {
+                        console.error('Invalid data format. Expected an array.');  // 错误处理
+                        jsonData = [];  // 如果数据无效，重置为默认值
+                        renderTable(jsonData);  // 渲染空表格
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));  // 捕获错误
+        }
+
+        // 渲染表格数据
+        function renderTable(data) {
+            const tableBody = document.getElementById('table-body');  // 获取表格主体元素
+            tableBody.innerHTML = '';  // 清空表格内容
+
+            const movementTypeValue = document.getElementById('movementTypeFilter').value;  // 获取动作筛选条件
+
+            // 遍历数据并渲染到表格
+            data.forEach((entry, idx) => {
+                if (!entry.data) return;  // 如果数据无效，跳过
+
+                // 如果筛选了动作类型，只渲染符合条件的动作
+                if (movementTypeValue !== 'all' && movementTypeValue) {
+                    entry.data.movements.forEach((movement, idx2) => {
+                        if (movement.type === movementTypeValue) {
+                            const row = document.createElement('tr');  // 创建表格行
+                            row.setAttribute('data-index', idx + idx2);  // 设置数据索引
+                            row.setAttribute('png-name', entry.data.datedet + "_" + movement.type);  // 设置图片名称属性
+                            row.innerHTML = `
+                                <td>${entry.data.date}</td>  <!-- 日期 -->
+                                <td>${entry.data.elderName}</td>  <!-- 老人名 -->
+                                <td>${entry.data.caregiverName}</td>  <!-- 护工名 -->
+                                <td>${movement.type}</td>  <!-- 动作 -->
+                                <td>${movement.side}</td>  <!-- 侧别 -->
+                                <td>${movement.maxdeg}</td>  <!-- 最大角度 -->
+                                <td>${movement.count}</td>  <!-- 合格情况 -->
+                                <td>${(movement.hasPng === true ? "是" : "否")}</td>  <!-- 是否有图片 -->
+                                <td><button class="delete-btn">删除</button></td>  <!-- 删除按钮 -->
+                                <td><input type="checkbox" class="export-checkbox"></td>  <!-- 导出复选框 -->
+                            `;
+                            tableBody.appendChild(row);  // 将行添加到表格
+                        }
+                    });
+                } else {
+                    // 如果未筛选动作类型，渲染所有动作
+                    entry.data.movements.forEach((movement, idx2) => {
+                        const row = document.createElement('tr');  // 创建表格行
+                        row.setAttribute('data-index', idx + idx2);  // 设置数据索引
+                        row.setAttribute('png-name', entry.data.datedet + "_" + movement.type);  // 设置图片名称属性
+                        row.innerHTML = `
+                            <td>${entry.data.date}</td>
+                            <td>${entry.data.elderName}</td>
+                            <td>${entry.data.caregiverName}</td>
+                            <td>${movement.type}</td>
+                            <td>${movement.side}</td>
+                            <td>${movement.maxdeg}</td>
+                            <td>${movement.count}</td>
+                            <td>${(movement.hasPng === true ? "是" : "否")}</td>
+                            <td><button class="delete-btn">删除</button></td>
+                            <td><input type="checkbox" class="export-checkbox"></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                    // 如果筛选条件不是动作类型，且数据中包含steps，渲染steps数据
+                    // 大概是历史遗留，不知道还会不会用到
+                    /*if (movementTypeValue === 'all' && entry.data.steps && entry.data.steps.TOTAL !== undefined) {
+                        const stepsRow = document.createElement('tr');  // 创建steps行
+                        stepsRow.setAttribute('data-index', idx);
+                        stepsRow.innerHTML = `
+                            <td>${entry.data.date}</td>
+                            <td>${entry.data.elderName}</td>
+                            <td>${entry.data.caregiverName}</td>
+                            <td>Stepping</td>
+                            <td>TOTAL</td>
+                            <td></td>
+                            <td></td>
+                            <td>${Number(entry.data.steps.TOTAL)}</td>
+                            <td><button class="delete-btn">删除</button></td>
+                            <td><input type="checkbox" class="export-checkbox"></td>
+                        `;
+                        tableBody.appendChild(stepsRow);
+                    }*/
+                }
+            });
+        }
+
+        // 为表格行绑定删除事件
+        document.getElementById('table-body').addEventListener('click', function (e) {
+            if (e.target.classList.contains('delete-btn')) {  // 判断点击的是删除按钮
+                const row = e.target.closest('tr');  // 获取被点击的行
+                const date = row.cells[0].textContent;  // 获取日期
+                const elderName = row.cells[1].textContent;  // 获取老人名
+                const caregiverName = row.cells[2].textContent;  // 获取护工名
+                const movement = row.cells[3].textContent;  // 获取动作
+                const side = row.cells[4].textContent;  // 获取侧别
+                const index = parseInt(row.getAttribute('data-index'));  // 获取数据索引
+
+                // 删除对应的数据
+                if (!isNaN(index)) {
+                    jsonData = deleteData(date, elderName, caregiverName, movement, side);
+                    row.remove();  // 从表格中移除行
+
+                    // 将更新后的数据上传到服务器
+                    const uploadResult = uploadToServer(jsonData, "http://117.72.15.78:3000/modify-movement");
+                    if (uploadResult) {
+                        console.log("数据修改成功！");
+                        deletePng();  // 删除对应的图片
+                    }
+                } else {
+                    console.error("无效索引", index);  // 如果索引无效，记录错误
+                }
+            }
+        });
+
+        // 更新所有筛选下拉框
+        function updateAllFilters() {
+            updateFilterOptions('dateFilter', 'date');  // 更新日期筛选
+            updateFilterOptions('elderNameFilter', 'elderName');  // 更新老人名筛选
+            updateFilterOptions('caregiverNameFilter', 'caregiverName');  // 更新护工名筛选
+            updateFilterOptions('movementTypeFilter', 'movementType');  // 更新动作筛选
+        }
+
+        // 动态填充下拉选项
+        function updateFilterOptions(filterId, filterType) {
+            const filterSelect = document.getElementById(filterId);  // 获取筛选下拉框
+            filterSelect.innerHTML = '<option value="all">全部</option>';  // 添加默认选项
+
+            // 获取数据中的唯一值并填充到下拉框中
+            const options = getUniqueValues(filterType);
+            options.forEach(option => {
+                const optElement = document.createElement('option');
+                optElement.value = option;  // 设置选项值
+                optElement.textContent = option;  // 设置显示文本
+                filterSelect.appendChild(optElement);  // 将选项添加到下拉框
+            });
+        }
+
+        // 获取唯一值
+        function getUniqueValues(filterType) {
+            if (filterType === 'movementType') {
+                // 获取所有动作类型的唯一值
+                return [...new Set(jsonData.flatMap(entry =>
+                    entry.data?.movements?.map(m => m.type) || []
+                ))];
+            } else {
+                // 获取其他类型的唯一值，例如日期、老人名等
+                return [...new Set(jsonData.map(entry => entry.data?.[filterType] || ''))];
+            }
+        }
+
+        // 复合筛选功能
+        function combineFilters() {
+            const dateValue = document.getElementById('dateFilter').value;  // 获取日期筛选值
+            const elderNameValue = document.getElementById('elderNameFilter').value;  // 获取老人名筛选值
+            const caregiverNameValue = document.getElementById('caregiverNameFilter').value;  // 获取护工名筛选值
+            const movementTypeValue = document.getElementById('movementTypeFilter').value;  // 获取动作筛选值
+
+            // 使用筛选条件组合过滤数据
+            const filteredData = jsonData.filter(entry => {
+                const entryDate = entry.data.date || '';  // 获取当前数据的日期
+                const entryElderName = entry.data.elderName || '';  // 获取当前数据的老人名
+                const entryCaregiverName = entry.data.caregiverName || '';  // 获取当前数据的护工名
+                const hasMovement = entry.data.movements?.some(m => m.type === movementTypeValue);  // 判断是否包含筛选的动作
+
+                return (
+                    (dateValue === 'all' || entryDate.includes(dateValue)) &&  // 筛选符合条件的日期
+                    (elderNameValue === 'all' || entryElderName === elderNameValue) &&  // 筛选符合条件的老人名
+                    (caregiverNameValue === 'all' || entryCaregiverName === caregiverNameValue) &&  // 筛选符合条件的护工名
+                    (movementTypeValue === 'all' || hasMovement)  // 筛选符合条件的动作
+                );
+            });
+
+            renderTable(filteredData);  // 重新渲染表格
+        }
+
+        // 删除数据
+        function deleteData(dateValue, elderNameValue, caregiverNameValue, movementTypeValue, sideValue) {
+            const filteredDataR = [];  // 存储筛选后的新数据
+
+            jsonData.forEach(entry => {
+                if (
+                    (entry.data.date === dateValue) &&  // 匹配日期
+                    (entry.data.elderName === elderNameValue) &&  // 匹配老人名
+                    (entry.data.caregiverName === caregiverNameValue)  // 匹配护工名
+                ) {
+                    // 删除匹配的动作类型和侧别
+                    const movementsT = [];
+                    entry.data.movements.forEach(movement => {
+                        if (movement.type !== movementTypeValue || movement.side !== sideValue) {
+                            movementsT.push(movement);  // 保存不符合删除条件的动作
+                        }
+                    });
+
+                    // 如果筛选后仍有数据，则保留该条数据
+                    if (movementsT.length) {
+                        const data = [];
+                        data.date = entry.data.date;
+                        data.elderName = entry.data.elderName;
+                        data.caregiverName = entry.data.caregiverName;
+                        data.movements = movementsT;
+                        const entryR = [];
+                        entryR.data = data;
+                        filteredDataR.push(entryR);
+                    }
+                } else {
+                    // 不符合条件的条目直接保留
+                    filteredDataR.push(entry);
+                }
+            });
+
+            return filteredDataR;  // 返回筛选后的新数据
+        }
+
+        // 上传数据到服务器
+        async function uploadToServer(data, url) {
+            const serverUrl = url;  // 服务器地址
+            try {
+                const response = await fetch(serverUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),  // 将数据转换为JSON格式
+                });
+
+                if (!response.ok) {
+                    throw new Error("服务器返回错误：" + response.statusText);  // 捕获错误
+                }
+                const result = await response.json();  // 将响应转换为JSON
+                return result;
+            } catch (error) {
+                console.error("数据上传失败：", error);  // 记录错误
+                alert("数据上传到服务器失败，请检查您的网络连接！");  // 提示用户
+                return null;
+            }
+        }
+
+        // 导出数据为Excel
+        async function exportToExcel() {
+            // 获取所有勾选的行
+            const checkedRows = [];
+            const pngs = [];
+            document.querySelectorAll('.export-checkbox:checked').forEach(checkbox => {
+                // 获取被勾选行对应的表格数据
+                const row = checkbox.closest('tr');
+                const rowData = {
+                    date: row.cells[0].textContent,  // 日期
+                    elderName: row.cells[1].textContent,  // 老人名
+                    caregiverName: row.cells[2].textContent,  // 护工名
+                    movement: row.cells[3].textContent,  // 动作
+                    side: row.cells[4].textContent,  // 侧别
+                    maxdeg: row.cells[5].textContent,  // 最大角度
+                    count: row.cells[6].textContent,  // 合格情况
+                    exist: row.cells[7].textContent,  // 是否存在图片
+                    pngName: row.getAttribute('png-name')  // 图片名称
+                };
+                checkedRows.push(rowData);  // 将行数据存入数组
+                if (rowData.exist === "是") pngs.push(row.getAttribute('png-name'));  // 收集图片名称
+            });
+
+            // 构造Excel工作表数据
+            const wsData = [
+                ['日期', '老人名', '护工名', '动作', '侧别', '最大角度', '合格情况']  // 表头
+            ];
+            checkedRows.forEach(row => {
+                wsData.push([
+                    row.date,
+                    row.elderName,
+                    row.caregiverName,
+                    row.movement,
+                    row.side,
+                    row.maxdeg,
+                    row.count
+                ]);
+            });
+
+            // 去重图片名称
+            const pngsR = [];
+            pngs.forEach(pngName => {
+                if (!pngsR.includes(pngName)) {
+                    pngsR.push(pngName);
+                }
+            });
+
+            // 创建Excel工作簿
+            const wb = new ExcelJS.Workbook();
+            const wsSummary = wb.addWorksheet("Summary");  // 添加汇总表格
+            wsData.forEach(r => wsSummary.addRow(r));  // 添加数据
+            wsSummary.getRow(1).font = { bold: true };  // 设置表头加粗
+
+            // 为每张图片创建一个工作表
+            const promises = pngsR.map(pngName => {
+                return fetch('http://117.72.15.78:3000/request-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: pngName
+                })
+                    .then(response => response.blob())  // 获取图片数据
+                    .then(blob => {
+                        const reader = new FileReader();
+                        return new Promise((resolve) => {
+                            reader.onload = (e) => {
+                                const correspondingRow = checkedRows.find(row => row.pngName === pngName);  // 查找对应的行
+                                const base64Image = e.target.result;
+                                const imgBase64 = base64Image.split(',')[1];  // 获取Base64编码部分
+
+                                // 创建新的工作表并插入图片
+                                const ws = wb.addWorksheet(pngName.replace(/:/g, "-"));
+                                const imgId = wb.addImage({ base64: imgBase64, extension: 'png' });
+                                ws.addImage(imgId, { tl: { col: 0, row: 0 }, ext: { width: 1000, height: 400 } });
+                                resolve();  // 通知Promise完成
+                            };
+                            reader.readAsDataURL(blob);  // 将图片转换为Data URL
+                        });
+                    });
+            });
+
+            // 等待所有图片处理完成
+            await Promise.all(promises);
+
+            // 将工作簿转换为Excel文件并导出
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `1.xlsx`;
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // 删除图片
+        function deletePng() {
+            // 收集所有包含图片的行
+            const table = document.getElementById('data-table');
+            const rows = table.querySelectorAll('tbody tr');
+            const pngs = [];
+
+            rows.forEach(row => {
+                if (row.cells[7].textContent === "是") {
+                    const pngName = row.getAttribute('png-name') + '.png';
+                    if (!pngs.includes(pngName)) pngs.push(pngName);  // 添加唯一图片名称
+                }
+            });
+
+            // 将图片名称上传到服务器以执行删除操作
+            const uploadResult = uploadToServer(pngs, "http://117.72.15.78:3000/modify-image");
+            if (uploadResult) {
+                console.log("数据修改成功！");
+            }
+        }
+
+        // 重置所有筛选条件
+        function resetFilters() {
+            document.getElementById('dateFilter').value = 'all';  // 重置日期筛选
+            document.getElementById('elderNameFilter').value = 'all';  // 重置老人名筛选
+            document.getElementById('caregiverNameFilter').value = 'all';  // 重置护工名筛选
+            document.getElementById('movementTypeFilter').value = 'all';  // 重置动作筛选
+
+            combineFilters();  // 重新应用筛选条件
+        }
+
+        // 页面加载时获取数据
+        window.onload = () => {
+            fetchData();  // 初始化数据加载
+        };
+    </script>
+</body>
+
+</html>

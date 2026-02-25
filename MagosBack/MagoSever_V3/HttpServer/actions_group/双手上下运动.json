@@ -1,0 +1,359 @@
+[
+  {
+    "action_name": "\u521d\u59cb",
+    "duration": 0.5,
+    "image_path": "action_groups\\\u521d\u59cb.png",
+    "joint_angles": [
+      481,
+      452,
+      429,
+      505,
+      592,
+      597,
+      745,
+      417,
+      514,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "11",
+    "duration": 1.0,
+    "image_path": "action_groups\\11.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      782,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "12",
+    "duration": 1.0,
+    "image_path": "action_groups\\12.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      568,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "11",
+    "duration": 1.0,
+    "image_path": "action_groups\\11.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      782,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "12",
+    "duration": 1.0,
+    "image_path": "action_groups\\12.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      568,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "11",
+    "duration": 1.0,
+    "image_path": "action_groups\\11.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      782,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "12",
+    "duration": 1.0,
+    "image_path": "action_groups\\12.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      568,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "11",
+    "duration": 1.0,
+    "image_path": "action_groups\\11.png",
+    "joint_angles": [
+      486,
+      450,
+      431,
+      506,
+      516,
+      782,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u672b\u5c3e",
+    "duration": 0.5,
+    "image_path": "action_groups\\\u672b\u5c3e.png",
+    "joint_angles": [
+      481,
+      452,
+      429,
+      505,
+      592,
+      597,
+      745,
+      417,
+      514,
+      514
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "21",
+    "duration": 1.0,
+    "image_path": "action_groups\\21.png",
+    "joint_angles": [
+      486,
+      493,
+      228,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "22",
+    "duration": 1.0,
+    "image_path": "action_groups\\22.png",
+    "joint_angles": [
+      486,
+      489,
+      506,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "21",
+    "duration": 1.0,
+    "image_path": "action_groups\\21.png",
+    "joint_angles": [
+      486,
+      493,
+      228,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "22",
+    "duration": 1.0,
+    "image_path": "action_groups\\22.png",
+    "joint_angles": [
+      486,
+      489,
+      506,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "21",
+    "duration": 1.0,
+    "image_path": "action_groups\\21.png",
+    "joint_angles": [
+      486,
+      493,
+      228,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "22",
+    "duration": 1.0,
+    "image_path": "action_groups\\22.png",
+    "joint_angles": [
+      486,
+      489,
+      506,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "21",
+    "duration": 1.0,
+    "image_path": "action_groups\\21.png",
+    "joint_angles": [
+      486,
+      493,
+      228,
+      503,
+      592,
+      596,
+      745,
+      417,
+      513,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  },
+  {
+    "action_name": "\u672b\u5c3e",
+    "duration": 0.5,
+    "image_path": "action_groups\\\u672b\u5c3e.png",
+    "joint_angles": [
+      481,
+      452,
+      429,
+      505,
+      592,
+      597,
+      745,
+      417,
+      514,
+      514
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

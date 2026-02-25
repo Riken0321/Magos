@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "右下手-手舞足動",
+    "duration": 1.0,
+    "image_path": "action_groups\\右下手-手舞足動.png",
+    "joint_angles": [
+      538,
+      354,
+      298,
+      354,
+      577,
+      690,
+      518,
+      1000,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

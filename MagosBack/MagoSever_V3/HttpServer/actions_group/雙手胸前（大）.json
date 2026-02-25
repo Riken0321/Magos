@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "雙手胸前（大）",
+    "duration": 1.0,
+    "image_path": "action_groups\\雙手胸前（大）.png",
+    "joint_angles": [
+      637,
+      323,
+      253,
+      352,
+      612,
+      826,
+      518,
+      1000,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]

@@ -1,0 +1,2811 @@
+<!DOCTYPE html>
+
+<html lang="zh">
+
+  <head>
+    <meta charset="utf-8" />
+    <title>Shoulder Rehab (Web) — v5.3</title>
+    <meta content="width=device-width,initial-scale=1" name="viewport" />
+    <style>
+    :root {
+      --bg: #0b0c10;
+      --card: #141518;
+      --line: #23262c;
+      --text: #eaeaea;
+      --muted: #9aa0a6;
+      --ok: #2fd37a;
+      --bad: #ff4d4f;
+      --warn: #f6c64e
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Arial, sans-serif
+    }
+
+    header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #111;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    header .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.5fr);
+      /* 例：左宽右窄 */
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px
+    }
+
+    .stack {
+      position: relative
+    }
+
+    video,
+    canvas {
+      width: 100%;
+      border-radius: 12px;
+      display: block;
+      background: #0f1014;
+      min-height: 300px
+    }
+
+    #overlay {
+      position: absolute;
+      left: 0;
+      top: 0
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    label {
+      color: var(--muted)
+    }
+
+    button,
+    select {
+      background: #1c1f26;
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px
+    }
+
+    input[type=range],
+    input[type=number],
+    input[type=text] {
+      background: #1c1f26;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 8px
+    }
+
+    small {
+      color: var(--muted)
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px
+    }
+
+    .stat {
+      font-variant-numeric: tabular-nums
+    }
+
+    @media (max-width:1100px) {
+      main {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* 进度条 */
+    .progress {
+      height: 10px;
+      background: #1c1f26;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden
+    }
+
+    .progress .bar {
+      height: 100%;
+      width: 0%
+    }
+
+    .progress.ok {
+      outline: 1px solid var(--ok)
+    }
+
+    /* 顶部工具栏（粘顶） */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      background: linear-gradient(180deg, #141518 0%, #141518 70%, transparent 100%);
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      border-radius: 10px 10px 0 0
+    }
+
+    /* 参数抽屉（加几个关键约束） */
+    details.params {
+      background: #17191f;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      max-width: 360px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .param-body {
+      padding: 10px 14px;
+      border-top: 1px dashed #2a2d34;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      overflow-x: hidden;
+      /* 防止内部出现横向滚动继而撑列 */
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 140px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+    }
+
+    details.params input,
+    details.params select,
+    details.params button {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* 小提示条 */
+    #loader {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #141518;
+      color: #9aa0a6;
+      display: none
+    }
+
+    /* 摄像头 + 曲线并排 */
+    .vizSplit {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+      /* 左右比例可调 */
+      gap: 12px;
+      align-items: start;
+    }
+
+    /* 摄像头容器，给最小宽度 & 固定比例 */
+    .camBox {
+      min-width: 360px;
+      /* 摄像头不被压瘪，按需调 320~400 */
+      aspect-ratio: 16 / 9;
+    }
+
+    .camBox video,
+    .camBox canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      display: block;
+      background: #0f1014;
+    }
+
+    /* 窄屏时改为上下堆叠 */
+    @media (max-width: 900px) {
+      .vizSplit {
+        grid-template-columns: 1fr;
+      }
+
+      .camBox {
+        min-width: 0;
+      }
+    }
+
+    /* 居中弹窗样式 */
+    .modal {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 9999;
+    }
+
+    .modal .card {
+      background: var(--card, #141518);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+      padding: 24px 20px 16px 20px;
+      min-width: 320px;
+      max-width: 90vw;
+      color: var(--text, #eaeaea);
+      border: 1px solid var(--line, #23262c);
+    }
+
+    .modal input[type="text"] {
+      background: #1c1f26;
+      color: var(--text, #eaeaea);
+      border: 1px solid var(--line, #23262c);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    .modal button {
+      margin-left: 8px;
+    }
+
+    @media (max-width: 500px) {
+      .modal .card {
+        min-width: 0;
+        width: 98vw;
+      }
+    }
+
+    /* 图表固定 16:9 比例 */
+    .chartBox {
+      aspect-ratio: 16 / 9;
+      min-height: 240px;
+    }
+
+    .chartBox canvas {
+      width: 100%;
+      height: 100% !important;
+      display: block;
+    }
+  </style>
+    <style>
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+  </head>
+
+  <body>
+    <header>
+      <strong>Shoulder Rehab (Web) v5.3</strong>
+      <span class="tag">Max Angle (hold ≥ 1s)</span>
+      <div class="row" style="margin-left:auto;">
+        <label>语言/Language</label>
+        <label class="sr-only" for="languageSelect">语言选择</label>
+        <select aria-label="选择语言" id="languageSelect"
+          name="language" title="选择语言">
+          <option value="zh">简体中文</option>
+          <option value="yue">繁体中文（粤语）</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+        <a href="{{request.host_url}}">
+          <button class="back-button">返回Blockly编程</button>
+        </a>
+        <!-- <a href="{{request.host_url}}/to_data">
+        <button class="back-button">数据管理中心</button>
+      </a> -->
+      </div>
+    </header>
+    <main>
+      <!-- 左侧：视频 + 工具 + 曲线 -->
+      <section class="panel">
+        <div class="toolbar">
+          <button id="btnCam">开启摄像头</button>
+          <button aria-label="开始记录（Excel）" id="btnCsv">开始记录（Excel）</button>
+          <button aria-label="重置当前模式" id="btnReset">重置当前模式</button>
+          <button aria-label="左右交换" id="btnSwap">左右交换</button>
+          <button aria-label="镜像预览" id="btnMirror">镜像预览</button>
+          <button id="btnVoice">开启语音</button>
+          <div
+            style="margin-left:auto;display:flex;gap:12px;align-items:center">
+            <div>FPS: <span id="fps">0</span></div>
+            <div id="modelText">模型: PoseLandmarker (full)</div>
+          </div>
+        </div>
+        <div id="loader">⏳ 正在预加载模型与运行环境（可直接点击“开启摄像头”，加载完会更快）…</div>
+        <section class="panel vizSplit">
+          <!-- 左：摄像头 -->
+          <div class="stack camBox">
+            <video autoplay id="video" muted playsinline></video>
+            <canvas id="overlay"></canvas>
+          </div>
+          <!-- 右：曲线 -->
+          <div class="chartBox">
+            <canvas id="chart"></canvas>
+          </div>
+        </section>
+        <!-- 下方状态 & 双色进度条 -->
+        <div class="grid2" style="margin-top:10px">
+          <div class="col">
+            <div>Left: <span class="stat" id="angL">--.-°</span> | Max <span
+                class="stat" id="maxL">--.-°</span></div>
+            <div>Right: <span class="stat" id="angR">--.-°</span> | Max <span
+                class="stat" id="maxR">--.-°</span></div>
+            <small id="angleGuide">Flex/Abd ≥150°, Ext ≥40°, IR/ER ≥60°
+              可自行调整</small>
+          </div>
+          <div class="col">
+            <div class="row" id="stepRow" style="gap:14px;">
+              <label for="stepsT">次数</label>
+              <div>Left: <span class="stat" id="stepsL">0</span></div>
+              <div>Right: <span class="stat" id="stepsR">0</span></div>
+              <div>Total: <span class="stat" id="stepsT">0</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="col" style="gap:6px;margin-top:8px">
+          <div class="row">
+            <label style="width:72px">Left<span id="dirLTag"
+                style="margin-left:6px;color:#9aa0a6"></span></label>
+            <div class="progress" id="progL" style="flex:1">
+              <div class="bar" id="barL"></div>
+            </div>
+            <span class="stat" id="gapL" style="width:110px;text-align:right">差
+              --°</span>
+          </div>
+          <div class="row">
+            <label style="width:72px">Right<span id="dirRTag"
+                style="margin-left:6px;color:#9aa0a6"></span></label>
+            <div class="progress" id="progR" style="flex:1">
+              <div class="bar" id="barR"></div>
+            </div>
+            <span class="stat" id="gapR" style="width:110px;text-align:right">差
+              --°</span>
+          </div>
+        </div>
+      </section>
+      <!-- 右侧：参数抽屉（点击展开） -->
+      <aside class="panel">
+        <details class="params" id="paramDrawer">
+          <summary>
+            <strong>参数列表</strong>
+            <span class="badge">点击展开 / 收起</span>
+          </summary>
+          <div class="param-body">
+            <!-- 基本模式 -->
+            <div class="section">
+              <h4>模式</h4>
+              <div class="kv">
+                <label for="sideMode">侧别</label>
+                <select id="sideMode">
+                  <option value="LEFT">LEFT</option>
+                  <option value="RIGHT">RIGHT</option>
+                  <option selected value="BOTH">BOTH</option>
+                </select>
+              </div>
+              <div class="kv">
+                <label for="movement">动作</label>
+                <select id="movement">
+                  <option value="flexion">1 前屈</option>
+                  <option value="extension">2 后伸</option>
+                  <option value="abduction">3 外展</option>
+                  <option value="int_ext_rot">4 内/外旋(双向)</option>
+                  <option value="stepping">5 踏步</option>
+                </select>
+              </div>
+            </div>
+            <!-- 滤波/记录 -->
+            <div class="section">
+              <h4>平滑与记录</h4>
+              <div class="kv">
+                <label for="alpha">EMA α</label>
+                <div class="row" style="flex:1">
+                  <input id="alpha" max="0.6" min="0.05" step="0.01"
+                    style="flex:1" type="range" value="0.1" />
+                  <span id="alphaVal">0.10</span>
+                </div>
+              </div>
+              <div class="kv">
+                <label for="minAngle">记录门槛</label>
+                <input id="minAngle" max="180" min="0" step="1" type="number"
+                  value="30" />
+              </div>
+              <small id="needContinuousReminder">需连续 ≥1s
+                超过该角度且刷新最大值，才会被记录为本轮最大角</small>
+            </div>
+            <!-- 目标角度 -->
+            <div class="section">
+              <h4>目标角度（达标判定）</h4>
+              <div class="kv">
+                <label for="targetFlex">前屈目标</label>
+                <input id="targetFlex" max="180" min="0" step="1" type="number"
+                  value="50" />
+              </div>
+              <div class="kv">
+                <label for="targetExten">后伸目标</label>
+                <input id="targetExten" max="180" min="0" step="1" type="number"
+                  value="15" />
+              </div>
+              <div class="kv">
+                <label for="targetAbd">外展目标</label>
+                <input id="targetAbd" max="180" min="0" step="1" type="number"
+                  value="60" />
+              </div>
+              <div class="kv">
+                <label for="targetInt">内旋目标</label>
+                <input id="targetInt" max="90" min="0" step="1" type="number"
+                  value="30" />
+              </div>
+              <div class="kv">
+                <label for="targetExt">外旋目标</label>
+                <input id="targetExt" max="90" min="0" step="1" type="number"
+                  value="30" />
+              </div>
+              <small id="movement4Use">仅动作4使用</small>
+            </div>
+            <!-- 踏步设置 -->
+            <div class="section">
+              <h4>踏步设置</h4>
+              <div class="kv">
+                <label for="stepFlex">屈阈值 ≤</label>
+                <input id="stepFlex" max="170" min="60" step="1" type="number"
+                  value="135" />
+              </div>
+              <div class="kv">
+                <label for="stepExt">伸阈值 ≥</label>
+                <input id="stepExt" max="190" min="90" step="1" type="number"
+                  value="165" />
+              </div>
+              <div class="kv">
+                <label for="stepDwell">去抖(ms)</label>
+                <input id="stepDwell" max="1000" min="0" step="10" type="number"
+                  value="50" />
+              </div>
+            </div>
+          </div>
+        </details>
+        <!-- 小提示 -->
+        <div style="margin-top:10px;color:#9aa0a6">提示：参数调整后立即生效</div>
+      </aside>
+    </main>
+    <!-- ======= 依赖库 ======= -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <!-- app -->
+    <script type="module">
+    // 获取当前语言环境
+    function getUserLocale() {
+      // 尝试从浏览器获取语言偏好
+      const navigatorLang = navigator.language || navigator.userLanguage;
+      if (navigatorLang.startsWith('zh-HK') || navigatorLang.startsWith('yue')) {
+        return 'yue';
+      } else if (navigatorLang.startsWith('en')) {
+        return 'en';
+      } else {
+        return 'zh';
+      }
+    }
+
+    // 语言翻译对象
+    const translations = {
+      en: {
+        appTitle: "Shoulder Rehab (Web)",
+        maxAngleTag: "Max Angle (hold ≥ 1s)",
+        stepCountTag: "Step count (hip–knee–ankle)",
+        exportZipTag: "Export ZIP: Excel + Charts",
+        cameraToggleTag: "Camera toggle (Off by default)",
+        sideLabel: "Side",
+        movementLabel: "Movement",
+        emaAlphaLabel: "EMA α",
+        minAngleThresholdLabel: "Min Angle Threshold",
+        targetFlexLabel: "Flexion Target",
+        targetExtenLabel: "Extension Target",
+        targetAbdLabel: "Abduction Target",
+        targetIntLabel: "Int Rot Target",
+        targetExtLabel: "Ext Rot Target",
+        stepFlexLabel: "Step Flex Threshold ≤",
+        stepExtLabel: "Step Ext Threshold ≥",
+        stepDwellLabel: "Debounce (ms)",
+        stepsLabel: "Reps",
+        csvButtonLabel: "Start Recording (Excel)",
+        swapButtonLabel: "Swap Sides",
+        mirrorButtonLabel: "Mirror Preview",
+        resetButtonLabel: "Reset Current Mode",
+        voiceButtonLabel: "Enable Voice",
+        voiceButtonLabelOff: "Disable Voice",
+        camButtonLabel: "Turn On Camera",
+        camButtonLabelOff: "Turn Off Camera",
+        leftLabel: "Left",
+        rightLabel: "Right",
+        bothLabel: "BOTH",
+        movement1: "1 Flexion",
+        movement2: "2 Extension",
+        movement3: "3 Abduction",
+        movement4: "4 Int/Ext Rot (Dual)",
+        movement5: "5 Stepping",
+        stepsSuffix: " steps",
+        leftKneeInvisible: " (Left knee not visible)",
+        rightKneeInvisible: " (Right knee not visible)",
+        completedStepping: "Completed one step, total ",
+        progressOk: "Qualified",
+        progressGap: "Need ",
+        progressGapNone: "Need --°",
+        degreesUnit: "°",
+        loadingModel: "⏳ Preloading model and running environment (you can directly click 'Turn On Camera', it will be faster after loading)...",
+        needContinuousReminder: "Must continuously exceed this angle for ≥1s to be recorded as the maximum angle of this round",
+        movement1Use: "Used for movement 1",
+        movement2Use: "Used for movement 2",
+        movement3Use: "Used for movement 3",
+        movement4Use: "Used for movement 4",
+        movement5Use: "Used for movement 5",
+        modelText: "Model: PoseLandmarker (full)",
+        noCameraApi: "Browser does not support camera API",
+        cameraError: "Cannot turn on camera: ",
+        cameraPermission: "Please allow camera in site settings from the browser address bar, then click 'Turn On Camera' again.",
+        videoPlaybackFailure: "Cannot play camera video",
+        mediapipeInitFailure: "MediaPipe initialization failed: ",
+        speechRecognitionNotSupported: "Current browser does not support speech recognition. Please use the latest version of Chrome/Edge.",
+        voiceControlEnabled: "Voice control enabled",
+        voiceControlDisabled: "Voice control disabled",
+        switchedToMovement: "Switched to movement ",
+        dataRecorded: "Data recorded",
+        cameraTurnedOn: "Camera turned on",
+        cameraTurnedOff: "Camera turned off",
+        caregiverNamePrompt: "Please enter caregiver name:",
+        patientNamePrompt: "Please enter patient name:",
+        caregiverNameEmpty: "Caregiver name cannot be empty",
+        patientNameEmpty: "Patient name cannot be empty",
+        // 新增图表相关翻译
+        chartXLabel: "Time (s)",
+        chartYLabel: "Angle (deg)",
+        chartLeftLabel: "Left",
+        chartRightLabel: "Right",
+        // 新增确认按钮文本
+        buttonTextYes: "Yes",
+        buttonTextNo: "No",
+        // 角度指南
+        angleGuide: "Flex/Abd ≥150°, Ext ≥40°, IR/ER ≥60° can be adjusted",
+
+        msgRecordingStart: "Start recording",
+        msgUploadSuccess: "Data uploaded to server successfully!",
+        msgExportDone: "Exported Excel (Summary + charts)",
+        msgChartUploaded: "Charts uploaded to server",
+
+        csvButtonStart: "Start Recording (Excel)",
+        csvButtonStop: "Stop & Export (Excel)",
+        paramListTitle: "Parameter List",
+        paramListBadge: "Click to expand / collapse",
+        sectionMode: "Mode",
+        sectionSmoothRecord: "Smoothing & Recording",
+        sectionTargetAngle: "Target Angle (Qualification)",
+        sectionStepping: "Stepping Settings",
+        fillInfoTitle: "Fill Information",
+        elderNameLabel: "Patient Name",
+        caregiverNameLabel: "Caregiver Name",
+        elderNamePlaceholder: "Required",
+        caregiverNamePlaceholder: "Optional",
+        cancelButton: "Cancel",
+        okButton: "OK",
+        endRecordTitle: "End Recording",
+        endRecordDesc: "Please select the actions to perform after ending (multiple choices allowed):",
+        downloadExcel: "Download data to local (Excel)",
+        uploadServer: "Upload data to server",
+        tipTitle: "Tip",
+        tipNoRecord: "Neither download nor upload selected. This data will <strong>not be recorded</strong>.",
+        //语音提示
+        voiceLet:"Very good, you can take a rest",
+        voicePraise: "Great job, keep it up",
+        voiceTryMore: "Try a bit more",
+        voiceRedGeneric: "{scope} {move} may be incorrect",
+
+      },
+      yue: {
+        appTitle: "肩部康復 (網頁版)",
+        maxAngleTag: "最大角度 (保持≥1秒)",
+        stepCountTag: "踏步計數 (髖–膝–踝)",
+        exportZipTag: "導出ZIP: Excel + 圖表",
+        cameraToggleTag: "相機切換 (預設關閉)",
+        sideLabel: "側別",
+        movementLabel: "動作",
+        emaAlphaLabel: "EMA α",
+        minAngleThresholdLabel: "最小角度閾值",
+        targetFlexLabel: "前屈目標",
+        targetExtenLabel: "後伸目標",
+        targetAbdLabel: "外展目標",
+        targetIntLabel: "內旋目標",
+        targetExtLabel: "外旋目標",
+        stepFlexLabel: "踏步屈閾值 ≤",
+        stepExtLabel: "踏步伸閾值 ≥",
+        stepDwellLabel: "去抖(ms)",
+        stepsLabel: "次數",
+        csvButtonLabel: "開始記錄（Excel）",
+        swapButtonLabel: "左右交換",
+        mirrorButtonLabel: "鏡像預覽",
+        resetButtonLabel: "重置當前模式",
+        voiceButtonLabel: "開啟語音",
+        voiceButtonLabelOff: "關閉語音",
+        camButtonLabel: "開啟相機",
+        camButtonLabelOff: "關閉相機",
+        leftLabel: "左",
+        rightLabel: "右",
+        bothLabel: "雙側",
+        movement1: "1 前屈",
+        movement2: "2 後伸",
+        movement3: "3 外展",
+        movement4: "4 內/外旋(雙向)",
+        movement5: "5 踏步",
+        stepsSuffix: "步",
+        leftKneeInvisible: " (左膝蓋不可見)",
+        rightKneeInvisible: " (右膝蓋不可見)",
+        completedStepping: "完成一次踏步，共 ",
+        progressOk: "合格",
+        progressGap: "差 ",
+        progressGapNone: "差 --°",
+        degreesUnit: "°",
+        loadingModel: "⏳ 正在預載入模型與運行環境（可直接點擊「開啟相機」，載入完會更快）…",
+        needContinuousReminder: "需連續≥1秒超過該角度且刷新最大值，才會被記錄為本輪最大角",
+        movement1Use: "動作1使用",
+        movement2Use: "動作2使用",
+        movement3Use: "動作3使用",
+        movement4Use: "動作4使用",
+        movement5Use: "動作5使用",
+        modelText: "模型: PoseLandmarker (full)",
+        noCameraApi: "瀏覽器不支持相機API",
+        cameraError: "無法開啟相機：",
+        cameraPermission: "請在瀏覽器地址欄的站點設置裡允許相機，然後再次點擊「開啟相機」。",
+        videoPlaybackFailure: "無法播放相機視頻",
+        mediapipeInitFailure: "MediaPipe初始化失敗: ",
+        speechRecognitionNotSupported: "當前瀏覽器不支持語音識別。請使用最新版Chrome/Edge。",
+        voiceControlEnabled: "語音控制已開啟",
+        voiceControlDisabled: "語音控制已關閉",
+        switchedToMovement: "已切換到動作",
+        dataRecorded: "已記錄數據",
+        cameraTurnedOn: "已開啟相機",
+        cameraTurnedOff: "已關閉相機",
+        caregiverNamePrompt: "請輸入護理人員名稱:",
+        patientNamePrompt: "請輸入老人名稱:",
+        caregiverNameEmpty: "護理人員名稱不能為空",
+        patientNameEmpty: "老人名稱不能為空",
+        // 新增图表相关翻译
+        chartXLabel: "時間 (秒)",
+        chartYLabel: "角度 (度)",
+        chartLeftLabel: "左",
+        chartRightLabel: "右",
+        // 新增确认按钮文本
+        buttonTextYes: "是",
+        buttonTextNo: "否",
+        // 角度指南
+        angleGuide: "默认Flex/Abd ≥150°, Ext ≥40°, IR/ER ≥60° 可自行調整",
+
+        msgRecordingStart: "開始記錄",
+        msgUploadSuccess: "數據已成功上傳到伺服器！",
+        msgExportDone: "已匯出 Excel（含 Summary 同動作折線圖）",
+        msgChartUploaded: "圖表已上傳到伺服器",
+
+        csvButtonStart: "開始記錄（Excel）",
+        csvButtonStop: "停止並導出（Excel）",
+        paramListTitle: "參數列表",
+        paramListBadge: "點擊展開 / 收起",
+        sectionMode: "模式",
+        sectionSmoothRecord: "平滑與記錄",
+        sectionTargetAngle: "目標角度（達標判定）",
+        sectionStepping: "踏步設置",
+        fillInfoTitle: "填寫信息",
+        elderNameLabel: "老人名",
+        caregiverNameLabel: "護工名",
+        elderNamePlaceholder: "必填",
+        caregiverNamePlaceholder: "可選",
+        cancelButton: "取消",
+        okButton: "確定",
+        endRecordTitle: "結束記錄",
+        endRecordDesc: "請選擇結束後要執行的操作（可多選）：",
+        downloadExcel: "下載數據到本地（Excel）",
+        uploadServer: "上傳數據到伺服器",
+        tipTitle: "提示",
+        tipNoRecord: "未選擇下載或上傳。本次數據將<strong>不被記錄</strong>。",
+        //语音提示
+        voiceLet:"非常好可以休息一下",
+        voicePraise: "做得好，保持住俩秒",
+        voiceTryMore: "再努力少少",
+        voiceRedGeneric: "{scope}{move}動作可能唔正確",
+
+
+      },
+      zh: {
+        appTitle: "肩部康复 (网页版)",
+        maxAngleTag: "最大角度 (保持≥1秒)",
+        stepCountTag: "踏步计数 (髋–膝–踝)",
+        exportZipTag: "导出ZIP: Excel + 图表",
+        cameraToggleTag: "相机切换 (默认关闭)",
+        sideLabel: "侧别",
+        movementLabel: "动作",
+        emaAlphaLabel: "EMA α",
+        minAngleThresholdLabel: "最小角度阈值（记录门槛）",
+        targetFlexLabel: "前屈目标",
+        targetExtenLabel: "后伸目标",
+        targetAbdLabel: "外展目标",
+        targetIntLabel: "内旋目标",
+        targetExtLabel: "外旋目标",
+        stepFlexLabel: "踏步屈阈值 ≤",
+        stepExtLabel: "踏步伸阈值 ≥",
+        stepDwellLabel: "去抖(ms)",
+        stepsLabel: "次数",
+        csvButtonLabel: "开始记录（Excel）",
+        swapButtonLabel: "左右交换",
+        mirrorButtonLabel: "镜像预览",
+        resetButtonLabel: "重置当前模式",
+        voiceButtonLabel: "开启语音",
+        voiceButtonLabelOff: "关闭语音",
+        camButtonLabel: "开启摄像头",
+        camButtonLabelOff: "关闭摄像头",
+        leftLabel: "LEFT",
+        rightLabel: "RIGHT",
+        bothLabel: "BOTH",
+        movement1: "1 前屈",
+        movement2: "2 后伸",
+        movement3: "3 外展",
+        movement4: "4 内/外旋(双向)",
+        movement5: "5 踏步",
+        stepsSuffix: "步",
+        leftKneeInvisible: " (左腿膝盖不可见)",
+        rightKneeInvisible: " (右腿膝盖不可见)",
+        completedStepping: "完成一次踏步，共 ",
+        progressOk: "合格",
+        progressGap: "差 ",
+        progressGapNone: "差 --°",
+        degreesUnit: "°",
+        loadingModel: "⏳ 正在预加载模型与运行环境（可直接点击'开启摄像头'，加载完会更快）…",
+        needContinuousReminder: "需连续 ≥1s 超过该角度且刷新最大值，才会被记录为本轮最大角",
+        movement1Use: "动作1使用",
+        movement2Use: "动作2使用",
+        movement3Use: "动作3使用",
+        movement4Use: "动作4使用",
+        movement5Use: "动作5使用",
+        modelText: "模型: PoseLandmarker (full)",
+        noCameraApi: "浏览器不支持摄像头API",
+        cameraError: "无法开启摄像头：",
+        cameraPermission: "请在浏览器地址栏的站点设置里允许摄像头，然后再次点击'开启摄像头'。",
+        videoPlaybackFailure: "无法播放摄像头视频",
+        mediapipeInitFailure: "MediaPipe初始化失败: ",
+        speechRecognitionNotSupported: "当前浏览器不支持语音识别。请使用最新版 Chrome/Edge。",
+        voiceControlEnabled: "语音控制已开启",
+        voiceControlDisabled: "语音控制已关闭",
+        switchedToMovement: "已切换到动作",
+        dataRecorded: "已记录数据",
+        cameraTurnedOn: "已开启摄像头",
+        cameraTurnedOff: "已关闭摄像头",
+        caregiverNamePrompt: "请输入护理人员名称:",
+        patientNamePrompt: "请输入老人名称:",
+        caregiverNameEmpty: "护理人员名称不能为空",
+        patientNameEmpty: "老人名称不能为空",
+        // 图表相关翻译
+        chartXLabel: "时间 (秒)",
+        chartYLabel: "角度 (度)",
+        chartLeftLabel: "Left",
+        chartRightLabel: "Right",
+        // 确认按钮文本
+        buttonTextYes: "是",
+        buttonTextNo: "否",
+        // 角度指南
+        angleGuide: "Flex/Abd ≥150°, Ext ≥40°, IR/ER ≥60° 可自行调整",
+
+        msgRecordingStart: "开始记录",
+        msgUploadSuccess: "数据已成功上传到服务器！",
+        msgExportDone: "已导出 Excel（含 Summary 和动作折线图）",
+        msgChartUploaded: "图表已上传服务器",
+
+        csvButtonStart: "开始记录（Excel）",
+        csvButtonStop: "停止并导出（Excel）",
+        paramListTitle: "参数列表",
+        paramListBadge: "点击展开 / 收起",
+        sectionMode: "模式",
+        sectionSmoothRecord: "平滑与记录",
+        sectionTargetAngle: "目标角度（达标判定）",
+        sectionStepping: "踏步设置",
+        fillInfoTitle: "填写信息",
+        elderNameLabel: "老人名",
+        caregiverNameLabel: "护工名",
+        elderNamePlaceholder: "必填",
+        caregiverNamePlaceholder: "可选",
+        cancelButton: "取消",
+        okButton: "确定",
+        endRecordTitle: "结束记录",
+        endRecordDesc: "请选择结束后要执行的操作（可多选）：",
+        downloadExcel: "下载数据到本地（Excel）",
+        uploadServer: "上传数据到服务器",
+        tipTitle: "提示",
+        tipNoRecord: "未选择下载或上传。本次数据将<strong>不被记录</strong>。",
+        //语音提示
+        voiceLet:"非常好可以休息下",
+        voicePraise: "做得好，保持住倆秒",
+        voiceTryMore: "请再努力一点",
+        voiceRedGeneric: "{scope}{move} 动作可能不正确",
+      },
+      ja: {
+        appTitle: "肩リハビリ (Web版)",
+        maxAngleTag: "最大角度 (1秒以上保持)",
+        stepCountTag: "ステップ回数 (股関節–膝–足首)",
+        exportZipTag: "ZIP出力: Excel + グラフ",
+        cameraToggleTag: "カメラ切替 (デフォルトはオフ)",
+        sideLabel: "側別",
+        movementLabel: "動作",
+        emaAlphaLabel: "EMA α",
+        minAngleThresholdLabel: "最小角度しきい値（記録基準）",
+        targetFlexLabel: "屈曲目標",
+        targetExtenLabel: "伸展目標",
+        targetAbdLabel: "外転目標",
+        targetIntLabel: "内旋目標",
+        targetExtLabel: "外旋目標",
+        stepFlexLabel: "ステップ屈曲しきい値 ≤",
+        stepExtLabel: "ステップ伸展しきい値 ≥",
+        stepDwellLabel: "デバウンス(ms)",
+        stepsLabel: "回数",
+        csvButtonLabel: "記録開始（Excel）",
+        swapButtonLabel: "左右切替",
+        mirrorButtonLabel: "ミラー表示",
+        resetButtonLabel: "現在のモードをリセット",
+        voiceButtonLabel: "音声有効化",
+        voiceButtonLabelOff: "音声無効化",
+        camButtonLabel: "カメラをオンにする",
+        camButtonLabelOff: "カメラをオフにする",
+        leftLabel: "左",
+        rightLabel: "右",
+        bothLabel: "両方",
+        movement1: "1 屈曲",
+        movement2: "2 伸展",
+        movement3: "3 外転",
+        movement4: "4 内/外旋(両方向)",
+        movement5: "5 ステップ",
+        stepsSuffix: "回",
+        leftKneeInvisible: " (左膝が見えません)",
+        rightKneeInvisible: " (右膝が見えません)",
+        completedStepping: "ステップ完了 合計 ",
+        progressOk: "合格",
+        progressGap: "あと ",
+        progressGapNone: "あと --°",
+        degreesUnit: "°",
+        loadingModel: "⏳ モデルと実行環境を事前読み込み中（「カメラをオンにする」を直接クリック可能、読み込み後は高速化）…",
+        needContinuousReminder: "この角度を1秒以上連続して超え、最大値を更新した場合のみ記録されます",
+        movement1Use: "動作1用",
+        movement2Use: "動作2用",
+        movement3Use: "動作3用",
+        movement4Use: "動作4用",
+        movement5Use: "動作5用",
+        modelText: "モデル: PoseLandmarker (フル)",
+        noCameraApi: "ブラウザがカメラAPIをサポートしていません",
+        cameraError: "カメラをオンにできません: ",
+        cameraPermission: "ブラウザのアドレスバーからサイト設定でカメラを許可し、再度「カメラをオンにする」をクリックしてください。",
+        videoPlaybackFailure: "カメラ映像を再生できません",
+        mediapipeInitFailure: "MediaPipe初期化失敗: ",
+        speechRecognitionNotSupported: "現在のブラウザは音声認識をサポートしていません。最新のChrome/Edgeをご利用ください。",
+        voiceControlEnabled: "音声コントロール有効化",
+        voiceControlDisabled: "音声コントロール無効化",
+        switchedToMovement: "動作を切り替えました ",
+        dataRecorded: "データ記録済み",
+        cameraTurnedOn: "カメラをオンにしました",
+        cameraTurnedOff: "カメラをオフにしました",
+        caregiverNamePrompt: "介護者名を入力してください:",
+        patientNamePrompt: "患者名を入力してください:",
+        caregiverNameEmpty: "介護者名は必須です",
+        patientNameEmpty: "患者名は必須です",
+        chartXLabel: "時間 (秒)",
+        chartYLabel: "角度 (度)",
+        chartLeftLabel: "左",
+        chartRightLabel: "右",
+        buttonTextYes: "はい",
+        buttonTextNo: "いいえ",
+        angleGuide: "屈曲/外転 ≥150°、伸展 ≥40°、内外旋 ≥60°は調整可能",
+        msgRecordingStart: "記録開始",
+        msgUploadSuccess: "データがサーバーに正常にアップロードされました！",
+        msgExportDone: "Excel（サマリー＋グラフ）を出力しました",
+        msgChartUploaded: "グラフがサーバーにアップロードされました",
+        csvButtonStart: "記録開始（Excel）",
+        csvButtonStop: "停止＆出力（Excel）",
+        paramListTitle: "パラメータ一覧",
+        paramListBadge: "クリックで展開/折りたたみ",
+        sectionMode: "モード",
+        sectionSmoothRecord: "平滑化＆記録",
+        sectionTargetAngle: "目標角度（合格判定）",
+        sectionStepping: "ステップ設定",
+        fillInfoTitle: "情報入力",
+        elderNameLabel: "患者名",
+        caregiverNameLabel: "介護者名",
+        elderNamePlaceholder: "必須",
+        caregiverNamePlaceholder: "任意",
+        cancelButton: "キャンセル",
+        okButton: "OK",
+        endRecordTitle: "記録終了",
+        endRecordDesc: "終了後の操作を選択してください（複数選択可）：",
+        downloadExcel: "データをローカルに保存（Excel）",
+        uploadServer: "データをサーバーにアップロード",
+        tipTitle: "ヒント",
+        tipNoRecord: "ダウンロードもアップロードも選択されていません。このデータは<strong>記録されません</strong>。",
+        //语音提示
+        voiceLet:"よくやった、もう手放していいよ",
+        voicePraise: "とても良いので、少し休めます",
+        voiceTryMore: "もう少し頑張りましょう",
+        voiceRedGeneric: "{scope}{move} は正しくない可能性があります",
+
+      }
+    };
+
+    // 当前语言，默认获取用户浏览器语言，或者从localStorage中读取
+    let currentLang = localStorage.getItem('preferredLanguage') || getUserLocale();
+
+    // 初始化语言选择器
+    const languageSelect = document.getElementById('languageSelect');
+    // 设置默认选中的语言
+    languageSelect.value = currentLang;
+
+    // 添加语言选择器事件监听器
+    languageSelect.addEventListener('change', function () {
+      try { redMuteUntil = performance.now() / 1000 + 5; } catch (e) { }
+
+      changeLanguage(this.value);
+    });
+
+    // 页面加载时初始化语言
+    window.addEventListener('DOMContentLoaded', function () {
+      changeLanguage(currentLang);
+    });
+
+    import { FilesetResolver, PoseLandmarker, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.11";
+
+    // 语言切换函数
+    function changeLanguage(lang) {
+      // 安全检查：确保语言代码有效
+      if (!translations[lang]) {
+        console.warn('Invalid language code:', lang, '. Using default: zh');
+        lang = 'zh';
+      }
+
+      // 更新当前语言
+      currentLang = lang;
+
+      // 保存首选语言到localStorage
+      localStorage.setItem('preferredLanguage', lang);
+
+      // 获取当前语言的翻译对象
+      const t = translations[lang];
+
+      // 辅助函数：获取单个元素
+      const el = (id) => document.getElementById(id);
+      // 辅助函数：获取多个元素
+      const els = (selector) => document.querySelectorAll(selector);
+
+      // 安全更新文本内容的辅助函数
+      const updateText = (element, key) => {
+        if (element && t[key]) {
+          element.textContent = t[key];
+        }
+      };
+
+      // 安全更新placeholder内容的辅助函数
+      const updatePlaceholder = (element, key) => {
+        if (element && t[key]) {
+          element.placeholder = t[key];
+        }
+      };
+
+      // 更新页面标题
+      updateText(el('appTitle'), 'appTitle');
+      updateText(el('maxAngleTag'), 'maxAngleTag');
+      updateText(el('stepCountTag'), 'stepCountTag');
+      updateText(el('exportZipTag'), 'exportZipTag');
+      updateText(el('cameraToggleTag'), 'cameraToggleTag');
+
+      // 更新标签文本 
+      updateText(document.querySelector('label[for="sideMode"]'), 'sideLabel');
+      updateText(document.querySelector('label[for="movement"]'), 'movementLabel');
+      updateText(document.querySelector('label[for="alpha"]'), 'emaAlphaLabel');
+      updateText(document.querySelector('label[for="minAngle"]'), 'minAngleThresholdLabel');
+      updateText(document.querySelector('label[for="targetFlex"]'), 'targetFlexLabel');
+      updateText(document.querySelector('label[for="targetExten"]'), 'targetExtenLabel');
+      updateText(document.querySelector('label[for="targetAbd"]'), 'targetAbdLabel');
+      updateText(document.querySelector('label[for="targetInt"]'), 'targetIntLabel');
+      updateText(document.querySelector('label[for="targetExt"]'), 'targetExtLabel');
+      updateText(document.querySelector('label[for="stepFlex"]'), 'stepFlexLabel');
+      updateText(document.querySelector('label[for="stepExt"]'), 'stepExtLabel');
+      updateText(document.querySelector('label[for="stepDwell"]'), 'stepDwellLabel');
+      updateText(document.querySelector('label[for="stepsT"]'), 'stepsLabel');
+
+      // 更新下拉选项
+      const sideMode = el('sideMode');
+      if (sideMode && sideMode.options.length >= 3) {
+        sideMode.options[0].text = t.leftLabel;
+        sideMode.options[1].text = t.rightLabel;
+        sideMode.options[2].text = t.bothLabel;
+      }
+
+      const movement = el('movement');
+      if (movement && movement.options.length >= 5) {
+        movement.options[0].text = t.movement1;
+        movement.options[1].text = t.movement2;
+        movement.options[2].text = t.movement3;
+        movement.options[3].text = t.movement4;
+        movement.options[4].text = t.movement5;
+      }
+
+      // 更新按钮文本
+      updateText(el('btnCsv'), 'csvButtonLabel');
+      updateText(el('btnSwap'), 'swapButtonLabel');
+      updateText(el('btnMirror'), 'mirrorButtonLabel');
+      updateText(el('btnReset'), 'resetButtonLabel');
+      updateText(el('btnVoice'), 'voiceButtonLabel');
+      updateText(el('btnCam'), 'camButtonLabel');
+
+      // 更新图表标签
+      if (window.myChart) {
+        // 如果图表已初始化，更新标签
+        window.myChart.options.scales.x.title.text = t.chartXLabel;
+        window.myChart.options.scales.y.title.text = t.chartYLabel;
+        window.myChart.update();
+      }
+
+      // 更新小提示文本
+      updateText(el('loadingModel'), 'loadingModel');
+      updateText(el('needContinuousReminder'), 'needContinuousReminder');
+      updateText(el('movement4Use'), 'movement4Use');
+      updateText(el('angleGuide'), 'angleGuide');
+
+      // 更新model text
+      updateText(el('modelText'), 'modelText');
+
+      // 更新所有具有data-i18n属性的元素
+      els('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (t[key]) {
+          element.textContent = t[key];
+        }
+      });
+
+      // 更新所有具有data-i18n-placeholder属性的元素
+      els('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        if (t[key]) {
+          element.placeholder = t[key];
+        }
+      });
+
+      // 如果有正在显示的弹窗，也更新其内容
+      const alertDialog = el('alertDialog');
+      if (alertDialog && !alertDialog.hidden) {
+        updateText(el('dialogMessage'), 'dialogMessage');
+        updateText(el('dialogYesBtn'), 'buttonTextYes');
+        updateText(el('dialogNoBtn'), 'buttonTextNo');
+      }
+
+      // 如果在初始化时，确保loadingModel文本正确显示
+      const loadingIndicator = document.getElementById('loadingModel');
+      if (loadingIndicator) {
+        loadingIndicator.textContent = t.loadingModel;
+      }
+
+      // 参数抽屉 summary/badge/section标题
+      const paramDrawer = document.getElementById('paramDrawer');
+      if (paramDrawer) {
+        const summary = paramDrawer.querySelector('summary');
+        if (summary) {
+          summary.querySelector('strong').textContent = t.paramListTitle;
+          const badge = summary.querySelector('.badge');
+          if (badge) badge.textContent = t.paramListBadge;
+        }
+        // section标题
+        const sections = paramDrawer.querySelectorAll('.section');
+        if (sections.length >= 4) {
+          sections[0].querySelector('h4').textContent = t.sectionMode;
+          sections[1].querySelector('h4').textContent = t.sectionSmoothRecord;
+          sections[2].querySelector('h4').textContent = t.sectionTargetAngle;
+          sections[3].querySelector('h4').textContent = t.sectionStepping;
+        }
+      }
+
+      // 参数抽屉下方提示
+      const paramTipEl = document.querySelector('aside.panel > div');
+      if (paramTipEl) paramTipEl.textContent = translations[lang].paramTip || '';
+      // 摄像头按钮多语言
+      if (camOn) {
+        btnCam.textContent = translations[lang].camButtonLabelOff || translations[lang].camButtonLabel || "关闭摄像头";
+      } else {
+        btnCam.textContent = translations[lang].camButtonLabel || "开启摄像头";
+      }
+    }
+
+
+    // === 从 translations 取 侧别/动作 文案 ===
+    function tSide(scope) { // 'LEFT' | 'RIGHT' | 'BOTH'
+      const t = translations[currentLang] || {};
+      return scope === 'LEFT' ? (t.leftLabel || 'Left')
+        : scope === 'RIGHT' ? (t.rightLabel || 'Right')
+          : (t.bothLabel || 'Both');
+    }
+    function tScope() { // 当前侧别模式（下拉框/变量名以页面为准：sideSel/sideMode）
+      const m = (typeof sideSel !== 'undefined' ? sideSel.value : document.getElementById('sideMode').value);
+      return tSide(m);
+    }
+    function tMove() { // 当前动作“纯名称”，去掉序号与括号
+      const t = translations[currentLang] || {};
+      const key = (typeof moveSel !== 'undefined' ? moveSel.value : document.getElementById('movement').value);
+      const map = {
+        flexion: t.movement1,
+        extension: t.movement2,
+        abduction: t.movement3,
+        int_ext_rot: t.movement4,
+        stepping: t.movement5
+      };
+      const raw = String(map[key] || '');
+      return raw.replace(/^\s*\d+\s*/, '').replace(/\s*\(.*?\)\s*$/, '').trim();
+    }
+
+
+    const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task";
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const sideSel = document.getElementById("sideMode");
+    const moveSel = document.getElementById("movement");
+    const alphaSlider = document.getElementById("alpha");
+    const alphaVal = document.getElementById("alphaVal");
+    const minAngleInput = document.getElementById("minAngle");
+    const btnCsv = document.getElementById("btnCsv");
+    const btnSwap = document.getElementById("btnSwap");
+    const btnMirror = document.getElementById("btnMirror");
+    const btnReset = document.getElementById("btnReset");
+    const btnVoice = document.getElementById("btnVoice");
+    const btnCam = document.getElementById("btnCam");
+    const angL_el = document.getElementById("angL");
+    const angR_el = document.getElementById("angR");
+    const maxL_el = document.getElementById("maxL");
+    const maxR_el = document.getElementById("maxR");
+    const fps_el = document.getElementById("fps");
+
+    const targetFlexInput = document.getElementById("targetFlex");
+    const targetExtenInput = document.getElementById("targetExten");
+    const targetAbdInput = document.getElementById("targetAbd");
+    const targetIntInput = document.getElementById("targetInt");
+    const targetExtInput = document.getElementById("targetExt");
+
+    [targetFlexInput, targetExtenInput, targetAbdInput, targetIntInput, targetExtInput]
+      .forEach(el => {
+        if (!el) return;
+        el.addEventListener('change', () => {
+          clearMaxForMove(moveSel.value);
+        });
+      });
+
+    const barL = document.getElementById("barL");
+    const barR = document.getElementById("barR");
+    const gapL = document.getElementById("gapL");
+    const gapR = document.getElementById("gapR");
+    const progL = document.getElementById("progL");
+    const progR = document.getElementById("progR");
+    const dirLTag = document.getElementById("dirLTag");
+    const dirRTag = document.getElementById("dirRTag");
+
+    const stepsL_el = document.getElementById("stepsL");
+    const stepsR_el = document.getElementById("stepsR");
+    const stepsT_el = document.getElementById("stepsT");
+
+    // 默认 BOTH 模式
+    sideSel.value = "BOTH";
+
+    let mirror = false, swapSides = false, EMA_ALPHA = parseFloat(alphaSlider.value);
+    alphaSlider.addEventListener("input", () => { EMA_ALPHA = parseFloat(alphaSlider.value); alphaVal.textContent = EMA_ALPHA.toFixed(2); });
+
+    const HOLD_SECONDS = 1; // 必须持续1s 才认定最大角
+    const MOVEMENTS = { flexion: { desc: "Flexion", threshold_ok: 150 }, extension: { desc: "Extension", threshold_ok: 40 }, abduction: { desc: "Abduction", threshold_ok: 150 }, int_rot: { desc: "Int Rot", threshold_ok: 60 }, ext_rot: { desc: "Ext Rot", threshold_ok: 60 } };
+
+    const MOVE_LABEL = { flexion: "flexion", extension: "extension", abduction: "abduction", int_rot: "int_rot", ext_rot: "ext_rot" };
+
+    const IDX = {
+      NOSE: 0, LSH: 11, RSH: 12, LEL: 13, REL: 14, LWR: 15, RWR: 16,
+      LHIP: 23, RHIP: 24, LKN: 25, RKN: 26, LANK: 27, RANK: 28
+    };
+    const LEFT = { hip: IDX.LHIP, shoulder: IDX.LSH, elbow: IDX.LEL, wrist: IDX.LWR, knee: IDX.LKN, ankle: IDX.LANK };
+    const RIGHT = { hip: IDX.RHIP, shoulder: IDX.RSH, elbow: IDX.REL, wrist: IDX.RWR, knee: IDX.RKN, ankle: IDX.RANK };
+    // === Frame gating for Action 2 (extension) ===
+    const FRAME_MARGIN = 0.02;   // within 2% to edges counts as out-of-frame
+    const VIS_TH = 0.60;   // per-landmark visibility threshold
+
+    const ARM2D_IDX = {
+      LEFT: { shoulder: 11, elbow: 13, wrist: 15 },
+      RIGHT: { shoulder: 12, elbow: 14, wrist: 16 },
+    };
+
+    function pointInFrame2D(p, m = FRAME_MARGIN) {
+      if (!p) return false;
+      const x = p.x, y = p.y;
+      return (x > m && x < 1 - m && y > m && y < 1 - m);
+    }
+
+    function armInFrame(side, lm2d) {
+      if (!lm2d) return false;
+      const k = ARM2D_IDX[side];
+      const pts = [lm2d[k.shoulder], lm2d[k.elbow], lm2d[k.wrist]];
+      if (pts.some(p => !p)) return false;
+      if (pts.some(p => (p.visibility ?? 1) < VIS_TH)) return false;
+      return pts.every(p => pointInFrame2D(p));
+    }
+
+
+    function getMapFor(which, swapped) { return (which === "LEFT") ? (swapped ? RIGHT : LEFT) : (swapped ? LEFT : RIGHT); }
+    function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+    function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+    function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    function norm(a) { const n = Math.hypot(a[0], a[1], a[2]); return n > 0 ? n : 0; }
+    function normalize(a) { const n = norm(a); return n ? [a[0] / n, a[1] / n, a[2] / n] : [0, 0, 0]; }
+    function angleBetween(v1, v2) { const n1 = norm(v1), n2 = norm(v2); if (!n1 || !n2) return NaN; let c = dot(v1, v2) / (n1 * n2); c = Math.max(-1, Math.min(1, c)); return Math.acos(c) * 180 / Math.PI; }
+    function planarAngle2D(a2, b2) { return angleBetween([a2[0], a2[1], 0], [b2[0], b2[1], 0]); }
+
+    // 对齐人体坐标
+    function alignToBodyFrame(world) {
+      const p = world.map(w => [w.x, w.y, w.z]);
+      const pelvis = [(p[IDX.LHIP][0] + p[IDX.RHIP][0]) / 2, (p[IDX.LHIP][1] + p[IDX.RHIP][1]) / 2, (p[IDX.LHIP][2] + p[IDX.RHIP][2]) / 2];
+      const shoulderC = [(p[IDX.LSH][0] + p[IDX.RSH][0]) / 2, (p[IDX.LSH][1] + p[IDX.RSH][1]) / 2, (p[IDX.LSH][2] + p[IDX.RSH][2]) / 2];
+      let up = normalize(sub(shoulderC, pelvis));
+      let right = normalize(sub(p[IDX.RSH], p[IDX.LSH]));
+      let fwd = normalize(cross(right, up));
+      right = normalize(cross(up, fwd));
+      const R = [right, up, fwd]; // 列向量
+      const local = p.map(q => sub(q, pelvis));
+      let body = local.map(q => [
+        q[0] * R[0][0] + q[1] * R[0][1] + q[2] * R[0][2],
+        q[0] * R[1][0] + q[1] * R[1][1] + q[2] * R[1][2],
+        q[0] * R[2][0] + q[1] * R[2][1] + q[2] * R[2][2]
+        // typo fix not needed; leave as standard
+      ]);
+      if (body[IDX.NOSE][2] < 0) { body = body.map(v => [-v[0], v[1], -v[2]]); }
+      const sw = norm(sub(body[IDX.LSH], body[IDX.RSH])); if (sw > 1e-6) body = body.map(v => [v[0] / sw, v[1] / sw, v[2] / sw]);
+      return body;
+    }
+
+    // EMA（曲线平滑度）
+    let emaPts = null;
+    function emaUpdate(bf) {
+      if (!emaPts || emaPts.length !== bf.length) emaPts = bf.map(v => v.slice());
+      else emaPts = emaPts.map((v, i) => [EMA_ALPHA * bf[i][0] + (1 - EMA_ALPHA) * v[0], EMA_ALPHA * bf[i][1] + (1 - EMA_ALPHA) * v[1], EMA_ALPHA * bf[i][2] + (1 - EMA_ALPHA) * v[2]]);
+      return emaPts;
+    }
+
+    // ===== 肩部角度 =====
+    function computeAngle(bf, sideMap, sideName, move) {
+      const hip = bf[sideMap.hip], sh = bf[sideMap.shoulder], el = bf[sideMap.elbow], wr = bf[sideMap.wrist];
+      const v_body = sub(hip, sh), v_uarm = sub(el, sh);
+      const proj = (v, plane) => plane === "sagittal" ? [v[1], v[2]] : plane === "coronal" ? [v[0], v[1]] : [v[0], v[2]];
+      let ang = NaN;
+      if (move === "flexion") {
+        ang = planarAngle2D(proj(v_uarm, "sagittal"), proj(v_body, "sagittal"));
+      } else if (move === "extension") {
+        const a = planarAngle2D(proj(v_uarm, "sagittal"), proj(v_body, "sagittal")); const backward = (v_uarm[2] < 0); ang = backward ? a : 0;
+      } else if (move === "abduction") {
+        ang = planarAngle2D(proj(v_uarm, "coronal"), proj(v_body, "coronal"));
+      }
+      return { angle: ang, ok: Number.isFinite(ang) && ang >= MOVEMENTS[move].threshold_ok };
+    }
+
+    // ===== 旋转（±90）=====
+    function computeDualRot(bf, sideName) {
+      const el = bf[sideName === "LEFT" ? IDX.LEL : IDX.REL];
+      const wr = bf[sideName === "LEFT" ? IDX.LWR : IDX.RWR];
+
+      const v = [wr[0] - el[0], wr[1] - el[1]];
+      const ref = (sideName === "LEFT") ? [-1, 0] : [1, 0];
+      const perp = [ref[1], -ref[0]];
+
+      const a = planarAngle2D(v, ref);
+      let diff = 90 - a;
+      let s = v[0] * perp[0] + v[1] * perp[1];
+      if (sideName === "LEFT") s = -s;
+      if (s < 0) diff = -diff;
+
+      const val = Math.max(-90, Math.min(90, diff));
+      return { val, ext: val > 0 ? val : 0, int: val < 0 ? -val : 0 };
+    }
+
+    // ===== 踏步检测：膝角（髋-膝-踝）=====
+    function kneeAngle(bf, side) {
+      const hip = bf[side === "LEFT" ? IDX.LHIP : IDX.RHIP];
+      const knee = bf[side === "LEFT" ? IDX.LKN : IDX.RKN];
+      const ank = bf[side === "LEFT" ? IDX.LANK : IDX.RANK];
+      const v1 = sub(hip, knee), v2 = sub(ank, knee);
+      return angleBetween(v1, v2); // 约 60~180（越小=屈）
+    }
+
+    // —— mode4（内/外旋）分别最大值 —— 
+    let rotMax = {
+      LEFT_EXT: { ang: 0, tStart: null }, LEFT_INT: { ang: 0, tStart: null },
+      RIGHT_EXT: { ang: 0, tStart: null }, RIGHT_INT: { ang: 0, tStart: null }
+    };
+    function resetRotMax() {
+      rotMax = {
+        LEFT_EXT: { ang: 0, tStart: null }, LEFT_INT: { ang: 0, tStart: null },
+        RIGHT_EXT: { ang: 0, tStart: null }, RIGHT_INT: { ang: 0, tStart: null }
+      };
+    }
+
+    // === 会话容器（储存最大角） ===
+    let sessionMax = {
+      flexion: { LEFT: 0, RIGHT: 0 },
+      extension: { LEFT: 0, RIGHT: 0 },
+      abduction: { LEFT: 0, RIGHT: 0 },
+      int_rot: { LEFT: 0, RIGHT: 0 },
+      ext_rot: { LEFT: 0, RIGHT: 0 }
+    };
+    function resetSessionMax() {
+      sessionMax = {
+        flexion: { LEFT: 0, RIGHT: 0 },
+        extension: { LEFT: 0, RIGHT: 0 },
+        abduction: { LEFT: 0, RIGHT: 0 },
+        int_rot: { LEFT: 0, RIGHT: 0 },
+        ext_rot: { LEFT: 0, RIGHT: 0 }
+      };
+    }
+
+    //清空最大角函数
+    function clearMaxForMove(move) {
+      // 清掉即时候选和本地峰值计时
+      maxL = maxR = 0;
+      candL = candR = null;
+      tStartL = tStartR = null;
+
+      if (move === "int_ext_rot") {
+        // 清掉内/外旋两个方向
+        sessionMax.int_rot.LEFT = sessionMax.int_rot.RIGHT = 0;
+        sessionMax.ext_rot.LEFT = sessionMax.ext_rot.RIGHT = 0;
+        resetRotMax();
+      } else if (["flexion", "extension", "abduction"].includes(move)) {
+        sessionMax[move].LEFT = 0;
+        sessionMax[move].RIGHT = 0;
+      }
+      refreshMaxLabelsForCurrentMove();
+    }
+
+
+    // === 会话时间序列（除踏步）===
+    const tsStoreEmpty = () => ({
+      flexion: [], extension: [], abduction: [], int_ext_rot: []
+    });
+    let tsStore = tsStoreEmpty();
+
+    // === 踏步计数状态（默认去抖 50ms）===
+    let STEP_FLEX = 135; let STEP_EXT = 165; let STEP_DWELL = 50;
+    const stepFlexInput = document.getElementById("stepFlex");
+    const stepExtInput = document.getElementById("stepExt");
+    const stepDwellInput = document.getElementById("stepDwell");
+    function syncStepCfg() {
+      STEP_FLEX = parseFloat(stepFlexInput.value) || 135;
+      STEP_EXT = parseFloat(stepExtInput.value) || 165;
+      STEP_DWELL = parseInt(stepDwellInput.value) || 50;
+    }
+    [stepFlexInput, stepExtInput, stepDwellInput].forEach(el => el.addEventListener("input", syncStepCfg));
+    syncStepCfg();
+    let stepState = { LEFT: 'idle', RIGHT: 'idle' };
+    let steps = { LEFT: 0, RIGHT: 0 };
+    function resetSteps() { stepState = { LEFT: 'idle', RIGHT: 'idle' }; steps = { LEFT: 0, RIGHT: 0 }; updateStepEls(); }
+    function updateStepEls() {
+      stepsL_el.textContent = steps.LEFT.toString();
+      stepsR_el.textContent = steps.RIGHT.toString();
+      stepsT_el.textContent = (steps.LEFT + steps.RIGHT).toString();
+    }
+
+    // === 动作1/2/3/4 计数（达标且持续≥1s 计1次；带回落滞后避免抖动重复记）===
+    const REP_HYST = 5; // 回落滞后角度（度）
+    let repsCount = {
+      LEFT: { flexion: 0, extension: 0, abduction: 0, int: 0, ext: 0 },
+      RIGHT: { flexion: 0, extension: 0, abduction: 0, int: 0, ext: 0 }
+    };
+    let repState = {
+      LEFT: {
+        flexion: { s: 'below', t: 0 }, extension: { s: 'below', t: 0 }, abduction: { s: 'below', t: 0 },
+        int: { s: 'below', t: 0 }, ext: { s: 'below', t: 0 }
+      },
+      RIGHT: {
+        flexion: { s: 'below', t: 0 }, extension: { s: 'below', t: 0 }, abduction: { s: 'below', t: 0 },
+        int: { s: 'below', t: 0 }, ext: { s: 'below', t: 0 }
+      }
+    };
+
+    function resetReps() {
+      ['LEFT', 'RIGHT'].forEach(side => {
+        ['flexion', 'extension', 'abduction', 'int', 'ext'].forEach(k => {
+          repsCount[side][k] = 0;
+          repState[side][k].s = 'below'; repState[side][k].t = 0;
+        });
+      });
+      updateCountEls();
+    }
+
+
+    function updateCountEls() {
+      const labelEl = document.querySelector('label[for="stepsT"]');
+      const mv = moveSel.value;
+      if (mv === 'stepping') {
+        labelEl.textContent = (translations[currentLang]?.stepsLabel || '步数');
+        stepsL_el.textContent = steps.LEFT.toString();
+        stepsR_el.textContent = steps.RIGHT.toString();
+        stepsT_el.textContent = (steps.LEFT + steps.RIGHT).toString();
+      } else {
+        labelEl.textContent = '次数';
+        const totalFor = (side) => {
+          if (mv === 'flexion') return repsCount[side].flexion;
+          if (mv === 'extension') return repsCount[side].extension;
+          if (mv === 'abduction') return repsCount[side].abduction;
+          if (mv === 'int_ext_rot') return repsCount[side].int + repsCount[side].ext; // 旋转合并显示
+          return 0;
+        };
+        const L = totalFor('LEFT'), R = totalFor('RIGHT');
+        stepsL_el.textContent = String(L);
+        stepsR_el.textContent = String(R);
+        stepsT_el.textContent = String(L + R);
+      }
+    }
+
+    // 核心状态机：达标进入 armed，持续≥1s 计数并转 locked；低于 (tgt-REP_HYST) 解锁
+    function tickRep(side, key, val, tgt, tRel) {
+      const st = repState[side][key];
+      if (!Number.isFinite(val) || !Number.isFinite(tgt) || tgt <= 0) {
+        st.s = 'below'; st.t = 0; return;
+      }
+      if (st.s === 'below') {
+        if (val >= tgt) { st.s = 'armed'; st.t = tRel; }
+      } else if (st.s === 'armed') {
+        if (val >= tgt) {
+          if (tRel - st.t >= HOLD_SECONDS) { // 与最大角确认同样的 1s 判据
+            repsCount[side][key]++; st.s = 'locked';
+            updateCountEls();
+          }
+        } else {
+          st.s = 'below';
+        }
+      } else if (st.s === 'locked') {
+        if (val <= tgt - REP_HYST) { st.s = 'below'; }
+      }
+    }
+
+    // ---- 曲线 & 状态 ----
+    const windowSec = 10;
+    let chart = null;
+    function initChart(mode) {
+      if (chart) { chart.destroy(); }
+      const ctxChart = document.getElementById("chart").getContext("2d");
+      const isRot = (mode === "int_ext_rot");
+      const isStep = (mode === "stepping");
+      chart = new Chart(ctxChart, {
+        type: "line",
+        data: {
+          labels: [], datasets: [
+            { label: "Left", data: [], borderWidth: 2, pointRadius: 0, tension: .15 },
+            { label: "Right", data: [], borderWidth: 2, pointRadius: 0, tension: .15 }
+          ]
+        },
+        options: {
+          responsive: true, animation: false,
+          scales: {
+            x: { title: { display: true, text: "Time (s)" }, ticks: { color: "#9aa0a6" } },
+            y: {
+              title: { display: true, text: isRot ? "Rotation (±90°)" : (isStep ? "Knee Angle (deg)" : "Angle (deg)") },
+              min: isRot ? -90 : (isStep ? 60 : 0), max: isRot ? 90 : (isStep ? 190 : 190), ticks: { color: "#9aa0a6" }
+            }
+          },
+          plugins: { legend: { labels: { color: "#eaeaea" } } }
+        }
+      });
+    }
+    initChart(moveSel.value);
+
+    let t0 = performance.now();
+    let recStart = null; // 记录起点（相对时间）
+    let maxL = 0, maxR = 0;
+    let candL = null, candR = null;
+    let tStartL = null, tStartR = null;
+    function resetModeState() {
+      chart.data.labels.length = 0;
+      chart.data.datasets[0].data.length = 0;
+      chart.data.datasets[1].data.length = 0;
+      chart.update("none");
+      t0 = performance.now();
+      maxL = maxR = 0; candL = candR = null; tStartL = tStartR = null;
+      refreshMaxLabelsForCurrentMove();
+      resetRotMax();
+    }
+
+    // —— 旋转最大值更新并同步至会话容器（动作4）
+    function updateRotMax(key, val, tRel, minAngle, side, movementLabel) {
+      if (!Number.isFinite(val) || val < minAngle) {
+        rotMax[key].tStart = null;
+        return;
+      }
+      if (val > rotMax[key].ang + 0.1) {
+        if (rotMax[key].tStart === null) rotMax[key].tStart = tRel;
+        if (tRel - rotMax[key].tStart >= HOLD_SECONDS) {
+          rotMax[key].ang = val;
+          rotMax[key].tStart = null;
+          if (movementLabel === "int_rot") {
+            sessionMax.int_rot[side] = Math.max(sessionMax.int_rot[side], val);
+          } else if (movementLabel === "ext_rot") {
+            sessionMax.ext_rot[side] = Math.max(sessionMax.ext_rot[side], val);
+          }
+          refreshMaxLabelsForCurrentMove();
+        }
+      } else {
+        rotMax[key].tStart = null;
+      }
+    }
+
+    // ===== 进度条：三色 =====
+    function colorForPct(p) { if (p >= 1) return 'var(--ok)'; if (p >= 0.6) return 'var(--warn)'; return 'var(--bad)'; }
+    function sideProgress(current, tgt) {
+      if (!Number.isFinite(current)) return { pct: 0, text: translations[currentLang].progressGapNone, ok: false };
+      const ok = tgt > 0 && current >= tgt;
+      const pct = tgt > 0 ? Math.max(0, Math.min(1, current / Math.max(1, tgt))) : 0;
+      const text = ok ? translations[currentLang].progressOk : (tgt > 0 ? translations[currentLang].progressGap + (tgt - current).toFixed(1) + "°" : translations[currentLang].progressGapNone);
+      return { pct, text, ok };
+    }
+    function paintBar(barEl, progWrap, p) {
+      barEl.style.width = `${(p.pct * 100).toFixed(1)}%`;
+      barEl.style.background = colorForPct(p.pct);
+      progWrap.classList.toggle("ok", p.ok);
+    }
+
+    function refreshMaxLabelsForCurrentMove() {
+      const move = moveSel.value;
+      if (move === "int_ext_rot") {
+        const lInt = (sessionMax.int_rot.LEFT || 0).toFixed(1);
+        const lExt = (sessionMax.ext_rot.LEFT || 0).toFixed(1);
+        const rInt = (sessionMax.int_rot.RIGHT || 0).toFixed(1);
+        const rExt = (sessionMax.ext_rot.RIGHT || 0).toFixed(1);
+        maxL_el.textContent = `内${lInt}° / 外${lExt}°`;
+        maxR_el.textContent = `内${rInt}° / 外${rExt}°`;
+      } else if (["flexion", "extension", "abduction"].includes(move)) {
+        maxL_el.textContent = `${(sessionMax[move].LEFT || 0).toFixed(1)}°`;
+        maxR_el.textContent = `${(sessionMax[move].RIGHT || 0).toFixed(1)}°`;
+      } else {
+        maxL_el.textContent = "--.-°"; maxR_el.textContent = "--.-°";
+      }
+    }
+
+
+    // === 语音提示参数（滞回/表扬/冷却） ===
+    const PRAISE_HOLD = 1.0;        // 绿区保持 ≥1s 才表扬
+    const POST_PRAISE_SILENCE = 8;  // 表扬后静默
+    const YELLOW_COOLDOWN = 40;     // 黄区冷却
+    const RED_COOLDOWN = 30;         // 若你保留 per-side 红区提醒会用到
+    const GREEN_ENTER = 1.00, GREEN_EXIT = 0.98; // 绿区滞回
+    const YELLOW_ENTER = 0.60, YELLOW_EXIT = 0.62; // 黄区滞回
+    //红区
+    const GENERIC_RED_HOLD = 6;       // 红区连续 ≥6s 才提醒
+    const GENERIC_RED_COOLDOWN = 8;   // 合并提醒冷却
+    const genericRedState = { zone: null, enteredAt: 0, lastRemind: 0 };
+
+    // 每侧状态
+    const sideState = {
+      LEFT: { zone: null, enteredAt: 0, lastRemind: 0, lastZone: null, greenAt: 0, praised: false, lastPraise: 0 },
+      RIGHT: { zone: null, enteredAt: 0, lastRemind: 0, lastZone: null, greenAt: 0, praised: false, lastPraise: 0 }
+    };
+
+    //
+    function zoneOfWithHysteresis(side, p) {
+      const st = sideState[side];
+      if (!p || !Number.isFinite(p.pct)) return null;
+      const prev = st.zone, x = p.pct;
+      if (prev === 'green') {
+        if (x >= GREEN_EXIT) return 'green';
+        if (x >= YELLOW_ENTER) return 'yellow';
+        return 'red';
+      } else if (prev === 'yellow') {
+        if (x >= GREEN_ENTER) return 'green';
+        if (x >= YELLOW_EXIT) return 'yellow';
+        return 'red';
+      } else {
+        if (x >= GREEN_ENTER) return 'green';
+        if (x >= YELLOW_ENTER) return 'yellow';
+        return 'red';
+      }
+    }
+    //表扬
+    function maybePraise(side, nowSec) {
+      const st = sideState[side];
+      if (st.zone !== 'green') { st.greenAt = 0; st.praised = false; return; }
+      if (!st.greenAt) st.greenAt = nowSec;
+      if (!st.praised && (nowSec - st.greenAt >= PRAISE_HOLD)) {
+        const lang = (typeof currentLang !== 'undefined' && currentLang) || 'zh';
+        speak(translations[currentLang].voicePraise);
+        st.praised = true;
+        st.lastPraise = nowSec;
+      }
+    }
+
+    //提示
+    function maybeRemind(side, progress, nowSec) {
+      const st = sideState[side];
+      const z = zoneOfWithHysteresis(side, progress);
+
+      // 颜色切换：记录进入时刻；从绿降到黄/红时，给“表扬后缓冲”
+      if (z !== st.zone) {
+        st.lastZone = st.zone;
+        st.zone = z;
+        st.enteredAt = nowSec;
+        if (st.lastZone === 'green' && (z === 'yellow' || z === 'red')) {
+          st.lastRemind = Math.max(st.lastRemind, nowSec - (POST_PRAISE_SILENCE - 0.001));
+        }
+      }
+      if (!z) return;
+      if (z === 'green') return; // 绿区交给 maybePraise
+
+      // 冷却/判据
+      const cd = (z === 'red') ? RED_COOLDOWN : YELLOW_COOLDOWN;
+      const reachedHold = (nowSec - st.enteredAt >= HOLD_SECONDS);  // 你已有 HOLD_SECONDS=1
+      const cooledDown = (nowSec - st.lastRemind >= cd);
+      const afterPraiseGap = (nowSec - st.lastPraise >= POST_PRAISE_SILENCE);
+
+      // 仅在黄区这里播报（红区交给 maybeGenericRed 做合并播报）
+      if (z === 'yellow' && reachedHold && cooledDown && afterPraiseGap) {
+        const lang = (typeof currentLang !== 'undefined' && currentLang) || 'zh';
+        speak(translations[currentLang].voiceTryMore);
+        st.lastRemind = nowSec;
+      }
+    }
+
+    function maybeGenericRed(progressL, progressR, nowSec) {
+      const sides = (typeof sideSel !== 'undefined' ? sideSel.value : document.getElementById('sideMode').value);
+      const active = sides === 'LEFT' ? ['LEFT'] : sides === 'RIGHT' ? ['RIGHT'] : ['LEFT', 'RIGHT'];
+      const zOf = (p) => {
+        if (!p || !Number.isFinite(p.pct)) return null;
+        if (p.pct >= GREEN_ENTER) return 'green';
+        if (p.pct >= YELLOW_ENTER) return 'yellow';
+        return 'red';
+      };
+      const zL = zOf(progressL), zR = zOf(progressR);
+      let combined = 'none';
+      if (active.includes('LEFT') && zL === 'red') combined = 'red';
+      if (active.includes('RIGHT') && zR === 'red') combined = 'red';
+
+      if (combined !== genericRedState.zone) {
+        genericRedState.zone = combined;
+        genericRedState.enteredAt = nowSec;
+      }
+      if (combined !== 'red') return;
+
+      const held = (nowSec - genericRedState.enteredAt >= GENERIC_RED_HOLD);
+      const cooled = (nowSec - genericRedState.lastRemind >= GENERIC_RED_COOLDOWN);
+      if (held && cooled) {
+        const lang = (typeof currentLang !== 'undefined' && currentLang) || 'zh';
+        const msg = translations[currentLang].voiceRedGeneric
+          .replace("{scope}", tScope())   // 当前侧别模式 (LEFT/RIGHT/BOTH) 对应翻译
+          .replace("{move}", tMove());    // 当前动作翻译
+        speak(msg);
+        genericRedState.lastRemind = nowSec;
+      }
+    }
+
+
+
+
+
+
+    /* ========================== 折线图 PNG 生成 ========================== */
+    // 将某个动作的时间序列画成折线图并返回 PNG dataURL
+    // 可选 elderName 参数，不传则尝试使用全局 elderName
+    async function renderSeriesToPNG(title, rows) {
+      // rows 形如: [["time_s","left","right"], [t,l,r], ...]
+      const data = rows.slice(1); // 跳过表头
+      if (!data.length) return null;
+
+      const times = data.map(r => r[0]);
+      const leftV = data.map(r => (r[1] == null ? null : r[1]));
+      const rightV = data.map(r => (r[2] == null ? null : r[2]));
+
+      // 离屏 canvas
+      const off = document.createElement('canvas');
+      off.width = 1200; off.height = 500;
+      const ctx = off.getContext('2d');
+
+      const localChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: times,
+          datasets: [
+            { label: 'Left', data: leftV, borderWidth: 2, pointRadius: 0, tension: .15 },
+            { label: 'Right', data: rightV, borderWidth: 2, pointRadius: 0, tension: .15 }
+          ]
+        },
+        options: {
+          responsive: false, animation: false,
+          plugins: { title: { display: true, text: title } },
+          scales: {
+            x: { title: { display: true, text: 'Time (s)' } },
+            y: { title: { display: true, text: 'Angle (deg or rot)' } }
+          }
+        }
+      });
+
+      // === 在图表完成首次绘制后，写右上角两行文本 ===
+      // 1) 时间戳
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      await new Promise(r => requestAnimationFrame(r));
+      const ca = localChart.chartArea || { top: 12, right: off.width - 12 };
+
+      // 2) 文字
+      ctx.save();
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.font = '14px system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans SC", sans-serif';
+      ctx.fillStyle = '#333';
+      const x = ca.right - 6;
+      let y = ca.top + 6;
+      ctx.fillText(ts, x, y);
+      y += 20;
+      ctx.fillText(`name: ${elderName || '—'}`, x, y); // 直接用全局 elderName
+      ctx.restore();
+
+      const url = off.toDataURL('image/png');
+      localChart.destroy();
+      return url;
+    }
+
+
+
+    /* ======================= 记录 & 导出 ======================= */
+    function qualify(val, tgt) { if (!Number.isFinite(val) || !Number.isFinite(tgt) || tgt <= 0) return "不合格"; return val >= tgt ? "合格" : "不合格"; }
+
+    let recOn = false;
+    let elderName = "", caregiverName = "";
+    //弹出记录姓名窗口
+    function openNameModal() {
+      return new Promise((resolve) => {
+        const t = translations[currentLang];
+        const m = document.createElement('div');
+        m.className = 'modal';
+        m.innerHTML =
+          `<div class="card">
+        <h3 style="margin:0 0 8px 0">${t.fillInfoTitle}</h3>
+       <div class="row"><label style="width:80px">${t.elderNameLabel}</label>
+          <input id="inpElder" type="text" placeholder="${t.elderNamePlaceholder}" style="flex:1"/></div>
+       <div class="row"><label style="width:80px">${t.caregiverNameLabel}</label>
+          <input id="inpCare" type="text" placeholder="${t.caregiverNamePlaceholder}" style="flex:1"/></div>
+        <div class="row">
+          <button id="btnCancel">${t.cancelButton}</button>
+          <button id="btnOk">${t.okButton}</button>
+        </div>
+      </div>`;
+        document.body.appendChild(m);
+        m.style.display = 'flex';
+        const elder = m.querySelector('#inpElder');
+        const care = m.querySelector('#inpCare');
+        elder.focus();
+        const close = (ok) => {
+          const res = ok ? { elder: elder.value.trim() || '未命名', care: care.value.trim() || '' } : null;
+          m.remove();
+          resolve(res);
+        };
+        m.querySelector('#btnCancel').onclick = () => close(false);
+        m.querySelector('#btnOk').onclick = () => close(true);
+      });
+    }
+    // —— 结束记录选项弹窗（勾选下载/上传）——
+    function openExportOptionsModal() {
+      return new Promise((resolve) => {
+        const t = translations[currentLang];
+        const m = document.createElement('div');
+        m.className = 'modal';
+        m.innerHTML = `
+      <div class="card">
+        <h3 style="margin:0 0 12px 0">${t.endRecordTitle}</h3>
+        <div style="margin:8px 0 12px 0;color:#9aa0a6">${t.endRecordDesc}</div>
+        <label style="display:flex;gap:8px;align-items:center;margin:6px 0">
+          <input id="chkDownload" type="checkbox" />
+          <span>${t.downloadExcel}</span>
+        </label>
+        <label style="display:flex;gap:8px;align-items:center;margin:6px 0">
+          <input id="chkUpload" type="checkbox" />
+          <span>${t.uploadServer}</span>
+        </label>
+        <div class="row" style="margin-top:14px;justify-content:flex-end">
+          <button id="btnCancel">${t.cancelButton}</button>
+          <button id="btnOk">${t.okButton}</button>
+        </div>
+      </div>`;
+        document.body.appendChild(m);
+        const close = (val) => { m.remove(); resolve(val); };
+        m.querySelector('#btnCancel').onclick = () => close(null);
+        m.querySelector('#btnOk').onclick = () => {
+          const download = m.querySelector('#chkDownload').checked;
+          const upload = m.querySelector('#chkUpload').checked;
+          close({ download, upload });
+        };
+      });
+    }
+    // —— 无操作确认弹窗（两项都没勾时）——
+    function confirmDiscardNoRecord() {
+      return new Promise((resolve) => {
+        const t = translations[currentLang];
+        const m = document.createElement('div');
+        m.className = 'modal';
+        m.innerHTML = `
+      <div class="card">
+        <h3 style="margin:0 0 12px 0;color:#ffcc66">${t.tipTitle}</h3>
+        <div style="margin:8px 0 12px 0">${t.tipNoRecord}</div>
+        <div class="row" style="margin-top:14px;justify-content:flex-end">
+          <button id="btnCancel">${t.cancelButton}</button>
+          <button id="btnOk">${t.okButton}</button>
+        </div>
+      </div>`;
+        document.body.appendChild(m);
+        const close = (ok) => { m.remove(); resolve(ok); };
+        m.querySelector('#btnCancel').onclick = () => close(false);
+        m.querySelector('#btnOk').onclick = () => close(true);
+      });
+    }
+
+    async function beginRecording() {
+      const info = await openNameModal();
+      if (!info) { return; }
+      elderName = info.elder; caregiverName = info.care;
+
+      resetSessionMax();
+      refreshMaxLabelsForCurrentMove(); // 立即把 Max 显示清成 --.-°
+      resetReps();
+      tsStore = tsStoreEmpty();
+      resetSteps();
+      recStart = performance.now();
+      recOn = true;
+      btnCsv.textContent = translations[currentLang].csvButtonStop;
+      speak(translations[currentLang].msgRecordingStart);
+    }
+
+    async function endAndExport(opts = { download: true, upload: true }) {
+      if (!recOn) return;
+      recOn = false;
+      btnCsv.textContent = translations[currentLang].csvButtonStart;
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const datedet = now.toString().slice(4, 24);
+      const fname = `${dateStr}_${elderName}`;
+
+      // 汇总区（保持你原来的 sumAoa 和 jsonToServer 逻辑）
+      const sumAoa = [
+        ["日期", dateStr],
+        ["老人名", elderName], ["护工名", caregiverName],
+        [],
+        ["Summary（最大角/步数）"],
+        ["Movement", "Side", "Max (deg)", "Qualified"],
+        ["Flexion", "LEFT", (sessionMax.flexion.LEFT || 0).toFixed(2), qualify(sessionMax.flexion.LEFT, +targetFlexInput.value || 0)],
+        ["Flexion", "RIGHT", (sessionMax.flexion.RIGHT || 0).toFixed(2), qualify(sessionMax.flexion.RIGHT, +targetFlexInput.value || 0)],
+        ["Extension", "LEFT", (sessionMax.extension.LEFT || 0).toFixed(2), qualify(sessionMax.extension.LEFT, +targetExtenInput.value || 0)],
+        ["Extension", "RIGHT", (sessionMax.extension.RIGHT || 0).toFixed(2), qualify(sessionMax.extension.RIGHT, +targetExtenInput.value || 0)],
+        ["Abduction", "LEFT", (sessionMax.abduction.LEFT || 0).toFixed(2), qualify(sessionMax.abduction.LEFT, +targetAbdInput.value || 0)],
+        ["Abduction", "RIGHT", (sessionMax.abduction.RIGHT || 0).toFixed(2), qualify(sessionMax.abduction.RIGHT, +targetAbdInput.value || 0)],
+        ["Int_Rot", "LEFT", (sessionMax.int_rot.LEFT || 0).toFixed(2), qualify(sessionMax.int_rot.LEFT, +targetIntInput.value || 0)],
+        ["Int_Rot", "RIGHT", (sessionMax.int_rot.RIGHT || 0).toFixed(2), qualify(sessionMax.int_rot.RIGHT, +targetIntInput.value || 0)],
+        ["Ext_Rot", "LEFT", (sessionMax.ext_rot.LEFT || 0).toFixed(2), qualify(sessionMax.ext_rot.LEFT, +targetExtInput.value || 0)],
+        ["Ext_Rot", "RIGHT", (sessionMax.ext_rot.RIGHT || 0).toFixed(2), qualify(sessionMax.ext_rot.RIGHT, +targetExtInput.value || 0)],
+        [],
+        ["Counts（达标≥1s）"],
+        ["Movement", "Side", "Count"],
+        ["Flexion", "LEFT", repsCount.LEFT.flexion],
+        ["Flexion", "RIGHT", repsCount.RIGHT.flexion],
+        ["Extension", "LEFT", repsCount.LEFT.extension],
+        ["Extension", "RIGHT", repsCount.RIGHT.extension],
+        ["Abduction", "LEFT", repsCount.LEFT.abduction],
+        ["Abduction", "RIGHT", repsCount.RIGHT.abduction],
+        ["Int Rot", "LEFT", repsCount.LEFT.int],
+        ["Int Rot", "RIGHT", repsCount.RIGHT.int],
+        ["Ext Rot", "LEFT", repsCount.LEFT.ext],
+        ["Ext Rot", "RIGHT", repsCount.RIGHT.ext],
+        ["TOTAL", "-",
+          repsCount.LEFT.flexion + repsCount.RIGHT.flexion +
+          repsCount.LEFT.extension + repsCount.RIGHT.extension +
+          repsCount.LEFT.abduction + repsCount.RIGHT.abduction +
+          repsCount.LEFT.int + repsCount.RIGHT.int +
+          repsCount.LEFT.ext + repsCount.RIGHT.ext
+        ],
+      ];
+
+      const jsonToServer = {
+        "date": dateStr,
+        "datedet": datedet,
+        "elderName": elderName,
+        "caregiverName": caregiverName,
+        "movements": [
+          { "type": "Flexion", side: "left", "maxdeg": (sessionMax.flexion.LEFT || 0).toFixed(2), "count": qualify(sessionMax.flexion.LEFT, +targetFlexInput.value || 0), "hasPng": (tsStore["flexion"].length ? true : false) },
+          { "type": "Flexion", side: "right", "maxdeg": (sessionMax.flexion.RIGHT || 0).toFixed(2), "count": qualify(sessionMax.flexion.RIGHT, +targetFlexInput.value || 0), "hasPng": (tsStore["flexion"].length ? true : false) },
+          { "type": "Extension", side: "left", "maxdeg": (sessionMax.extension.LEFT || 0).toFixed(2), "count": qualify(sessionMax.extension.LEFT, +targetExtenInput.value || 0), "hasPng": (tsStore["extension"].length ? true : false) },
+          { "type": "Extension", side: "right", "maxdeg": (sessionMax.extension.RIGHT || 0).toFixed(2), "count": qualify(sessionMax.extension.RIGHT, +targetExtenInput.value || 0), "hasPng": (tsStore["extension"].length ? true : false) },
+          { "type": "Abduction", side: "left", "maxdeg": (sessionMax.abduction.LEFT || 0).toFixed(2), "count": qualify(sessionMax.abduction.LEFT, +targetAbdInput.value || 0), "hasPng": (tsStore["abduction"].length ? true : false) },
+          { "type": "Abduction", side: "right", "maxdeg": (sessionMax.abduction.RIGHT || 0).toFixed(2), "count": qualify(sessionMax.abduction.RIGHT, +targetAbdInput.value || 0), "hasPng": (tsStore["abduction"].length ? true : false) },
+          { "type": "Int_Rot", side: "left", "maxdeg": (sessionMax.int_rot.LEFT || 0).toFixed(2), "count": qualify(sessionMax.int_rot.LEFT, +targetIntInput.value || 0), "hasPng": (tsStore.int_ext_rot.length ? true : false) },
+          { "type": "Int_Rot", side: "right", "maxdeg": (sessionMax.int_rot.RIGHT || 0).toFixed(2), "count": qualify(sessionMax.int_rot.RIGHT, +targetIntInput.value || 0), "hasPng": (tsStore.int_ext_rot.length ? true : false) },
+          { "type": "Ext_Rot", side: "left", "maxdeg": (sessionMax.ext_rot.LEFT || 0).toFixed(2), "count": qualify(sessionMax.ext_rot.LEFT, +targetExtInput.value || 0), "hasPng": (tsStore.int_ext_rot.length ? true : false) },
+          { "type": "Ext_Rot", side: "right", "maxdeg": (sessionMax.ext_rot.RIGHT || 0).toFixed(2), "count": qualify(sessionMax.ext_rot.RIGHT, +targetExtInput.value || 0), "hasPng": (tsStore.int_ext_rot.length ? true : false) }
+        ],
+        "steps": {
+          "LEFT": steps.LEFT || 0,
+          "RIGHT": steps.RIGHT || 0,
+          "TOTAL": (steps.LEFT || 0) + (steps.RIGHT || 0)
+        }
+      };
+
+      // 1) 仅当勾选“上传到服务器”时执行上传（JSON）（改）
+      if (opts.upload) {
+        const uploadResult = await uploadToServer(jsonToServer, "http://117.72.15.78:3000/submit-movement");
+        if (uploadResult) speak(translations[currentLang].msgUploadSuccess);
+
+      }
+
+      // ====== 统一渲染各动作 PNG（不依赖是否下载）======
+      const mkRows = (key) => [["time_s", "left", "right"], ...tsStore[key]];
+      const charts = []; // {title, png}
+      const plan = [
+        ["Flexion", "flexion"],
+        ["Extension", "extension"],
+        ["Abduction", "abduction"],
+        ["Int_Ext_Rot", "int_ext_rot"]
+      ];
+
+      for (const [title, key] of plan) {
+        const hasData = tsStore[key] && tsStore[key].length > 0;
+        if (!hasData) continue;
+        const png = await renderSeriesToPNG(title, mkRows(key));           // :contentReference[oaicite:3]{index=3}
+        if (!png) continue;
+        charts.push({ title, png });
+      }
+
+      // 2a) 若勾选“上传到服务器”，把 PNG 一起上传
+      if (opts.upload) {
+        // 精确到秒：YYYY-MM-DD_HH-MM
+        const now = new Date();
+        const dateStr = now.toString().slice(4, 24);
+        const safeElder = elderName || "未命名";
+        const careGiver = caregiverName || "未命名";
+
+        for (const { title, png } of charts) {
+          const filename = `${dateStr}_${title}.png`;
+          await uploadPNGToServer(png, filename);
+        }
+      }
+
+      // 2b) 若勾选“下载到本地”，生成并下载 Excel（把已渲染的 PNG 插进去）
+      if (opts.download) {
+        const wb = new ExcelJS.Workbook();
+        const wsSummary = wb.addWorksheet("Summary");
+        sumAoa.forEach(r => wsSummary.addRow(r));
+        wsSummary.getRow(1).font = { bold: true };
+
+        for (const { title, png } of charts) {
+          const ws = wb.addWorksheet(title);
+          const imgId = wb.addImage({ base64: png, extension: 'png' });
+          ws.addImage(imgId, { tl: { col: 0, row: 0 }, ext: { width: 1000, height: 400 } });
+        }
+
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${fname}.xlsx`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(a.href);
+        speak(translations[currentLang].msgExportDone);
+      }
+      // 如果两者都没选：什么也不做（纯结束记录）
+    }
+
+    //上传到服务器
+    async function uploadToServer(data, url) {
+      const serverUrl = url;
+      try {
+        const response = await fetch(serverUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+          throw new Error("服务器返回错误：" + response.statusText);
+        }
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error("数据上传失败：", error);
+        alert("数据上传到服务器失败，请检查您的网络连接！");
+        return null;
+      }
+    }
+
+    //上传图片到服务器（改）
+    async function uploadPNGToServer(base64Url, filename) {
+      try {
+        // dataURL → Blob
+        const resp = await fetch(base64Url);
+        const blob = await resp.blob();
+
+        const formData = new FormData();
+        formData.append("file", blob, filename);
+
+        // 按你服务器的路由修改：/upload-png
+        const up = await fetch("http://117.72.15.78:3000/upload-png", {
+          method: "POST",
+          body: formData
+        });
+        if (!up.ok) throw new Error("服务器返回错误：" + up.status + " " + up.statusText);
+
+        const result = await up.json();
+        console.log("PNG 上传成功：", result);
+        speak(translations[currentLang].msgChartUploaded);
+        return result;
+      } catch (err) {
+        console.error("PNG 上传失败：", err);
+        alert("图表上传失败，请检查网络或服务器接口！");
+        return null;
+      }
+    }
+
+    // 切换/重置：只重置“显示状态”
+    function viewOnlyReset() {
+      resetModeState();
+      clearMaxForMove(moveSel.value); // 清空当前动作的会话最大角
+      initChart(moveSel.value);
+      updateCountEls();
+    }
+    btnReset.addEventListener("click", viewOnlyReset);
+    sideSel.addEventListener("change", viewOnlyReset);
+    moveSel.addEventListener("change", () => {
+      viewOnlyReset();
+      // 进入/离开踏步：清一次进入时间，避免残留
+      const mv = moveSel.value;
+      if (mv === 'stepping') {
+        stepState._tEnter = {};
+      } else {
+        if (stepState && stepState._tEnter) stepState._tEnter = {};
+      }
+    });
+
+    // 左右交换/镜像
+    btnSwap.addEventListener("click", () => { swapSides = !swapSides; btnSwap.textContent = swapSides ? "左右已交换" : "左右交换"; });
+    let mirrorOn = false; btnMirror.addEventListener("click", () => { mirrorOn = !mirrorOn; btnMirror.textContent = mirrorOn ? "取消镜像" : "镜像预览"; mirror = mirrorOn; });
+
+    // 摄像头开/关（默认关闭）
+    let stream = null, landmarker = null, fileset = null;
+    let videoReady = false;
+    let camOn = false;
+    btnCam.addEventListener("click", async () => {
+      if (camOn) {
+        camOn = false; btnCam.textContent = translations[currentLang].camButtonLabel || "开启摄像头";
+        videoReady = false;
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        video.srcObject = null; ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } else {
+        btnCam.textContent = translations[currentLang].camButtonLabelOff || "关闭摄像头";
+        try {
+          await startCamera();
+          camOn = true;
+          resetModeState();
+          loop();
+        } catch (error) {
+          camOn = false;
+          btnCam.textContent = translations[currentLang]?.camButtonLabel || "开启摄像头";
+          const t = translations[currentLang];
+          const errorMsg = t?.cameraError || "无法开启摄像头：";
+          const permissionMsg = t?.cameraPermission || "请在浏览器地址栏的站点设置里允许摄像头，然后再次点击'开启摄像头'。";
+          const errorName = (error && error.name) ? error.name : String(error || '未知错误');
+          alert(`${errorMsg}${errorName}\n\n${permissionMsg}`);
+        }
+      }
+    });
+
+    async function startCamera() {
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      }
+      video.srcObject = stream;
+
+      await new Promise((resolve) => {
+        function ready() { if (video.videoWidth > 0 && video.videoHeight > 0) { video.removeEventListener('loadedmetadata', ready); resolve(); } }
+        video.addEventListener('loadedmetadata', ready);
+        if (video.readyState >= 2) ready();
+      });
+      await video.play();
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      videoReady = true;
+
+      if (!fileset) fileset = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.11/wasm");
+      if (!landmarker) {
+        landmarker = await PoseLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO", numPoses: 1, minPoseDetectionConfidence: 0.75, minPosePresenceConfidence: 0.75, minTrackingConfidence: 0.75
+        });
+      }
+    }
+
+    // ===== 语音（可选） =====
+    // 语音播报函数，根据下拉框选择的语言播报
+    function speak(text) {
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        // 从 select 里读取用户选择的语言
+        const lang = document.getElementById("languageSelect").value;
+        if (lang === "en") {
+          u.lang = "en-US";
+        } else if (lang === "yue") {
+          u.lang = "zh-HK";  // 粤语
+        } else if (lang === "ja") {
+          u.lang = "ja-JP";  // 日语
+        } else {
+          u.lang = "zh-CN";  // 默认普通话
+        }
+        speechSynthesis.speak(u);
+      } catch (e) { }
+    }
+
+    // === 颜色播报统一管理（进入即播；红/黄每40秒重复；绿只进场播一次语言1, 然后没4秒重复播voiceLet）===
+    const COLOR_REPEAT_SEC = 300;
+    const RED_DELAY_SEC = 16; // 红区首播延迟与循环间隔（秒）
+    const GREEN_DELAY_SEC = 4;
+    const colorAnnounceState = { zone: null, lastSpeakAt: 0 };
+    const LAST_BROADCAST = 10;
+    let LAST_BROADCAST_SEC = 0; // 上次
+    let redMuteUntil = 0;  // 进入任一动作后的前5秒内静音红色播报
+
+    function speakInterrupt(text) {
+      try { speechSynthesis.cancel(); } catch (e) { }
+      speak(text);
+    }
+
+    function getGlobalZone(Lp, Rp) {
+      const validL = Lp && Number.isFinite(Lp.pct);
+      const validR = Rp && Number.isFinite(Rp.pct);
+      const zoneFromPct = (p) => (p < YELLOW_ENTER ? 'red' : (p < GREEN_ENTER ? 'yellow' : 'green'));
+
+      // 两边都 NaN -> 红
+      if (!validL && !validR) return 'red';
+      // 只有一边有效 -> 用有效的一边
+      if (validL && !validR) return zoneFromPct(Lp.pct);
+      if (!validL && validR) return zoneFromPct(Rp.pct);
+      // 两边都有效 -> 取更大进度/角度一边
+      const pBest = (Lp.pct >= Rp.pct) ? Lp.pct : Rp.pct;
+      return zoneFromPct(pBest);
+    }
+
+    function updateColorAnnouncements(Lp, Rp, nowSec) {
+      const newZone = getGlobalZone(Lp, Rp);
+      const prev = colorAnnounceState.zone;
+      const redMuted = (typeof redMuteUntil !== 'undefined') ? (nowSec < redMuteUntil) : false;
+
+      // 进入新区域：记录进入时间，清零重复计时；仅绿/黄进入时播一次；红不立刻播
+      if (newZone !== prev) {
+        colorAnnounceState.zone = newZone;
+        colorAnnounceState.enteredAt = nowSec;   // 进入时间
+        colorAnnounceState.lastSpeakAt = 0;      // 清零，表示尚未播报
+
+        if (newZone === 'green') {
+          colorAnnounceState.lastSpeakAt = nowSec;
+          // 绿区：进入即播一次
+          if (nowSec - LAST_BROADCAST > LAST_BROADCAST){
+            LAST_BROADCAST_SEC = nowSec
+            speakInterrupt((translations[currentLang] || translations['zh']).voicePraise);
+          }
+        } 
+        else if (newZone === 'yellow') {
+          // 黄区：进入即播一次，其后依 COLOR_REPEAT_SEC 重复
+          colorAnnounceState.lastSpeakAt = nowSec;
+          // 不用重复播报，距离上次播报需要等待十秒以上
+          if (nowSec - LAST_BROADCAST_SEC > LAST_BROADCAST){
+            LAST_BROADCAST_SEC = nowSec
+            speakInterrupt((translations[currentLang] || translations['zh']).voiceTryMore);
+          }
+        }
+        return;
+      }
+
+      // 同一区域内的循环播报：
+      if (newZone === 'red') {
+        // 红区：进入后先等 RED_DELAY_SEC，再每 RED_DELAY_SEC 播一次
+        const enteredAgo = nowSec - (colorAnnounceState.enteredAt || 0);
+        const lastAgo = nowSec - (colorAnnounceState.lastSpeakAt || 0);
+        if (!redMuted && enteredAgo >= RED_DELAY_SEC && lastAgo >= RED_DELAY_SEC) {
+          // 使用你的红区合并提示（保持原文）
+          // speakInterrupt((translations[currentLang] || translations['zh']).voiceRedGeneric
+          //   .replace("{scope}", "")
+          //   .replace("{move}", tMove()));
+          colorAnnounceState.lastSpeakAt = nowSec;
+        }
+      } else if (newZone === 'yellow') {
+        // 黄区：每 COLOR_REPEAT_SEC 播一次
+        const lastAgo = nowSec - (colorAnnounceState.lastSpeakAt || 0);
+        if (lastAgo >= COLOR_REPEAT_SEC) {
+          speakInterrupt((translations[currentLang] || translations['zh']).voiceTryMore);
+          colorAnnounceState.lastSpeakAt = nowSec;
+        }
+      } else {
+        // 绿区：每 GREEN_DELAY_SEC 播一次
+        const lastAgo = nowSec - (colorAnnounceState.lastSpeakAt || 0);
+        if (lastAgo >= GREEN_DELAY_SEC) {
+          speakInterrupt((translations[currentLang] || translations['zh']).voiceLet);
+          colorAnnounceState.lastSpeakAt = nowSec;
+        }
+      }
+    }// 关闭旧的 maybe* 语音，避免与新逻辑重复
+    (function disableOldSpeakers() {
+      try { if (typeof maybePraise === 'function') { maybePraise = function () { }; } } catch (e) { }
+      try { if (typeof maybeRemind === 'function') { maybeRemind = function () { }; } } catch (e) { }
+      try { if (typeof maybeGenericRed === 'function') { maybeGenericRed = function () { }; } } catch (e) { }
+    })();
+
+
+    function setMovementByNumber(n) {
+      const map = { 1: 'flexion', 2: 'extension', 3: 'abduction', 4: 'int_ext_rot', 5: 'stepping' };
+      if (map[n]) {
+        moveSel.value = map[n];
+
+        // 进入动作：红色播报静音5秒
+        try { redMuteUntil = performance.now() / 1000 + 10; } catch (e) { }
+        moveSel.dispatchEvent(new Event('change'));
+        // 使用多语言播报  
+        const t = translations[currentLang];
+        speak(t.switchedToMovement + n);
+      }
+    }
+    function ensureRecording(on) {
+      if (on && !recOn) { beginRecording(); }
+      if (!on && recOn) { endAndExport(); }
+    }
+
+    let recognizer = null, recognizing = false;
+    function startRecognizer() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        alert('当前浏览器不支持语音识别。请使用最新版 Chrome/Edge。');
+        return;
+      }
+      const t = translations[currentLang];
+      recognizer = new SR();
+      // 根据当前语言设置语音识别语言
+      recognizer.lang = currentLang === 'en' ? 'en-US' : 'zh-CN';
+      recognizer.continuous = true;
+      recognizer.interimResults = false;
+
+      recognizer.onresult = (ev) => {
+        const res = ev.results[ev.results.length - 1][0].transcript.trim();
+        const cmd = res.replace(/\s+/g, '').toLowerCase();
+
+        // 多语言命令识别
+        if (currentLang === 'en') {
+          // 英语命令
+          if (/^(start|startrecording|begin|record)$/.test(cmd)) {
+            ensureRecording(true);
+            speak(t.dataRecorded);
+            return;
+          }
+          if (/^(stop|stoprecording|end)$/.test(cmd)) {
+            ensureRecording(false);
+            return;
+          }
+          if (/^[12345]$/.test(cmd)) {
+            setMovementByNumber(parseInt(cmd, 10));
+            return;
+          }
+          if (/^(cameraon|turnoncamera|opencamera)$/.test(cmd)) {
+            if (!camOn) btnCam.click();
+            speak(t.cameraTurnedOn);
+            return;
+          }
+          if (/^(cameraoff|turnoffcamera|closecamera)$/.test(cmd)) {
+            if (camOn) btnCam.click();
+            speak(t.cameraTurnedOff);
+            return;
+          }
+        } else if (currentLang === 'yue') {
+          // 粤语命令
+          if (/^(開始記錄|開始|start|record)$/.test(cmd)) {
+            ensureRecording(true);
+            speak(t.dataRecorded);
+            return;
+          }
+          if (/^(停止記錄|停止|end|stop)$/.test(cmd)) {
+            ensureRecording(false);
+            return;
+          }
+          const numMapYue = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5 };
+          let m = cmd.match(/動作([12345一二三四五])/);
+          if (m) {
+            const token = m[1];
+            const n = '12345'.includes(token) ? parseInt(token, 10) : numMapYue[token];
+            if (n) {
+              setMovementByNumber(n);
+              return;
+            }
+          }
+          if (/^[12345]$/.test(cmd)) {
+            setMovementByNumber(parseInt(cmd, 10));
+            return;
+          }
+          if (/^(開相機|開啟相機)$/.test(cmd)) {
+            if (!camOn) btnCam.click();
+            speak(t.cameraTurnedOn);
+            return;
+          }
+          if (/^(關相機|關閉相機)$/.test(cmd)) {
+            if (camOn) btnCam.click();
+            speak(t.cameraTurnedOff);
+            return;
+          }
+        } else {
+          // 中文命令
+          if (/^(开始记录|开始csv|开始|开始excel)$/.test(cmd)) {
+            ensureRecording(true);
+            speak(t.dataRecorded);
+            return;
+          }
+          if (/^(停止记录|停止csv|停止|停止excel)$/.test(cmd)) {
+            ensureRecording(false);
+            return;
+          }
+          const numMap = { '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5 };
+          let m = cmd.match(/动作([12345一二两三四五])/);
+          if (m) {
+            const token = m[1];
+            const n = '12345'.includes(token) ? parseInt(token, 10) : numMap[token];
+            if (n) {
+              setMovementByNumber(n);
+              return;
+            }
+          }
+          if (/^[12345]$/.test(cmd)) {
+            setMovementByNumber(parseInt(cmd, 10));
+            return;
+          }
+          if (/^[一二两三四五]$/.test(cmd)) {
+            setMovementByNumber(numMap[cmd]);
+            return;
+          }
+          if (/^(开摄像头|开启摄像头)$/.test(cmd)) {
+            if (!camOn) btnCam.click();
+            speak(t.cameraTurnedOn);
+            return;
+          }
+          if (/^(关摄像头|关闭摄像头)$/.test(cmd)) {
+            if (camOn) btnCam.click();
+            speak(t.cameraTurnedOff);
+            return;
+          }
+        }
+      };
+
+      recognizer.onend = () => {
+        if (recognizing) {
+          try {
+            recognizer.start();
+          } catch (e) { }
+        }
+      };
+
+      try {
+        recognizer.start();
+        recognizing = true;
+        // 更新按钮文本为当前语言的关闭语音文本
+        btnVoice.textContent = t.voiceButtonLabelOff;
+        speak(t.voiceControlEnabled);
+      } catch (e) { }
+    }
+    function stopRecognizer() {
+      if (recognizer) {
+        recognizing = false;
+        try {
+          recognizer.stop();
+        } catch (e) { }
+      }
+      const t = translations[currentLang];
+      btnVoice.textContent = t.voiceButtonLabel;
+      speak(t.voiceControlDisabled);
+    }
+    btnVoice.addEventListener('click', () => {
+      if (!recognizing) {
+        startRecognizer();
+      } else {
+        stopRecognizer();
+      }
+    });
+
+    // 结束记录的交互流程：先弹选择框 → 决定下载/上传/丢弃
+    async function handleStopRecordingFlow() {
+      if (!recOn) return;
+      // 弹出选择勾选框
+      const choice = await openExportOptionsModal();
+      // 用户点“取消”，不结束记录，维持 recOn
+      if (!choice) return;
+      // 都没选：二次确认
+      if (!choice.download && !choice.upload) {
+        const ok = await confirmDiscardNoRecord();
+        if (!ok) return; // 取消 → 继续记录
+        // 确定 → 结束但不做任何保存/上传
+        await endAndExport({ download: false, upload: false });
+        return;
+      }
+
+      // 有选择：按选择执行
+      await endAndExport({ download: !!choice.download, upload: !!choice.upload });
+    }
+
+
+    // 绑定 记录按钮
+    btnCsv.addEventListener('click', async () => {
+      if (!recOn) {
+        await beginRecording();
+      } else {
+        await handleStopRecordingFlow();
+      }
+    });
+
+    // ===== 预加载 Mediapipe 模型 & WASM =====
+    async function prewarmModel() {
+      const loader = document.getElementById('loader');
+      try {
+        loader.style.display = 'block';
+        if (!fileset) {
+          fileset = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.11/wasm");
+        }
+        try { await fetch(MODEL_URL, { cache: 'force-cache', mode: 'cors' }); } catch (e) { }
+        if (!landmarker) {
+          try {
+            landmarker = await PoseLandmarker.createFromOptions(fileset, {
+              baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+              runningMode: "VIDEO", numPoses: 1,
+              minPoseDetectionConfidence: 0.75, minPosePresenceConfidence: 0.75, minTrackingConfidence: 0.75
+            });
+          } catch (e) { }
+        }
+      } finally {
+        loader.style.display = 'none';
+      }
+    }
+    prewarmModel();
+
+    // 主循环
+    const drawUtil = new DrawingUtils(ctx);
+    let lastTs = -1;
+    function loop() {
+      if (!camOn) { requestAnimationFrame(loop); return; }
+
+      const ts = performance.now(), tRel = (ts - t0) / 1000;
+
+      let res = null;
+      if (videoReady && video.videoWidth > 0 && video.videoHeight > 0) {
+        try { res = landmarker?.detectForVideo(video, ts); } catch (e) { }
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (mirror) { ctx.save(); ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      if (res?.landmarks?.[0]) {
+        drawUtil.drawLandmarks(res.landmarks[0], { radius: 2 });
+        drawUtil.drawConnectors(res.landmarks[0], PoseLandmarker.POSE_CONNECTIONS);
+      }
+
+      if (res?.worldLandmarks?.[0]) {
+        let bf = alignToBodyFrame(res.worldLandmarks[0]);
+        bf = emaUpdate(bf);
+
+        const move = moveSel.value, mode = sideSel.value;
+        const minAngle = parseFloat(minAngleInput.value) || 0;
+
+        let angL = NaN, angR = NaN;
+        let dispL = NaN, dispR = NaN;
+
+        if (move === "int_ext_rot") {  // 旋转（±90）
+          if (mode === "LEFT" || mode === "BOTH") {
+            const L = computeDualRot(bf, "LEFT");
+            updateRotMax("LEFT_EXT", L.ext, tRel, minAngle, "LEFT", "ext_rot");
+            updateRotMax("LEFT_INT", L.int, tRel, minAngle, "LEFT", "int_rot");
+            angL_el.textContent =
+              "内:" + L.int.toFixed(1) + "° | max:" + rotMax.LEFT_INT.ang.toFixed(1) +
+              "° / 外:" + L.ext.toFixed(1) + "° | max:" + rotMax.LEFT_EXT.ang.toFixed(1) + "°";
+            dispL = L.val;
+          } else { angL_el.textContent = "--.-°"; }
+
+          if (mode === "RIGHT" || mode === "BOTH") {
+            const R = computeDualRot(bf, "RIGHT");
+            updateRotMax("RIGHT_EXT", R.ext, tRel, minAngle, "RIGHT", "ext_rot");
+            updateRotMax("RIGHT_INT", R.int, tRel, minAngle, "RIGHT", "int_rot");
+            angR_el.textContent =
+              "内:" + R.int.toFixed(1) + "° | max:" + rotMax.RIGHT_INT.ang.toFixed(1) +
+              "° / 外:" + R.ext.toFixed(1) + "° | max:" + rotMax.RIGHT_EXT.ang.toFixed(1) + "°";
+            dispR = R.val;
+          } else { angR_el.textContent = "--.-°"; }
+
+
+          // —— 动作4：达标计数（内为负、外为正；取绝对值与对应目标比较）
+          const tgtInt = Number(targetIntInput.value) || 0;
+          const tgtExt = Number(targetExtInput.value) || 0;
+
+          if ((mode === "LEFT" || mode === "BOTH") && Number.isFinite(dispL)) {
+            const isExtL = dispL > 0;
+            const tgtL = isExtL ? tgtExt : tgtInt;
+            tickRep("LEFT", isExtL ? "ext" : "int", Math.abs(dispL), tgtL, tRel);
+          }
+          if ((mode === "RIGHT" || mode === "BOTH") && Number.isFinite(dispR)) {
+            const isExtR = dispR > 0;
+            const tgtR = isExtR ? tgtExt : tgtInt;
+            tickRep("RIGHT", isExtR ? "ext" : "int", Math.abs(dispR), tgtR, tRel);
+          }
+
+          const dirLabel = (v) => Number.isFinite(v) ? (v > 0 ? "(外)" : "(内)") : "";
+          dirLTag.textContent = dirLabel(dispL);
+          dirRTag.textContent = dirLabel(dispR);
+          const sidePct = (val) => {
+            if (!Number.isFinite(val)) return { pct: 0, text: "差 --°", ok: false };
+            const absv = Math.abs(val);
+            const tgt = val > 0 ? tgtExt : val < 0 ? tgtInt : 0;
+            const ok = tgt > 0 && absv >= tgt;
+            const pct = tgt > 0 ? Math.max(0, Math.min(1, absv / Math.max(1, tgt))) : 0;
+            const text = ok ? "合格" : (tgt > 0 ? `差 ${(tgt - absv).toFixed(1)}°` : "差 --°");
+            return { pct, text, ok };
+          };
+          const Lp = sidePct(dispL), Rp = sidePct(dispR);
+          paintBar(barL, progL, Lp); paintBar(barR, progR, Rp);
+          gapL.textContent = Lp.text; gapR.textContent = Rp.text;
+          //未达标提示
+          const nowSec = performance.now() / 1000;
+          if (recOn) {
+            // 优先级：红 > 黄 > 绿（同一帧只播一种） ---
+            const anyRed =
+              (Lp && Number.isFinite(Lp.pct) && Lp.pct < YELLOW_ENTER) ||
+              (Rp && Number.isFinite(Rp.pct) && Rp.pct < YELLOW_ENTER);
+
+            const anyYellow = !anyRed && (
+              (Lp && Number.isFinite(Lp.pct) && Lp.pct >= YELLOW_ENTER && Lp.pct < GREEN_ENTER) ||
+              (Rp && Number.isFinite(Rp.pct) && Rp.pct >= YELLOW_ENTER && Rp.pct < GREEN_ENTER)
+            );
+
+            if (anyRed) {
+              // 只处理红区合并播报
+              maybeGenericRed(Lp, Rp, tRel);
+            } else if (anyYellow) {
+              // 只处理黄区逐侧提醒
+              maybeRemind('LEFT', Lp, tRel);
+              maybeRemind('RIGHT', Rp, tRel);
+            } else {
+              // 只处理绿区表扬
+              maybePraise('LEFT', tRel);
+              maybePraise('RIGHT', tRel);
+            }
+
+            // 颜色播报（进入即播；红/黄每5秒重复；绿仅进入播一次）
+            const nowSec = performance.now() / 1000;
+            if (recOn) { updateColorAnnouncements(Lp, Rp, nowSec); }
+          }
+
+        }
+        else if (move === "stepping") {
+          // 膝角
+          if (mode === "LEFT" || mode === "BOTH") {
+            angL = kneeAngle(bf, "LEFT");
+          }
+          if (mode === "RIGHT" || mode === "BOTH") {
+            angR = kneeAngle(bf, "RIGHT");
+          }
+          dispL = angL; dispR = angR;
+          angL_el.textContent = Number.isFinite(angL) ? angL.toFixed(1) + "°" : "--.-°";
+          angR_el.textContent = Number.isFinite(angR) ? angR.toFixed(1) + "°" : "--.-°";
+
+          // 步态状态机（屈->伸计1步）
+          const upd = (side, val) => {
+            if (!Number.isFinite(val)) return;
+            if (stepState[side] === "idle") {
+              if (val <= STEP_FLEX) { stepState[side] = "flexed"; stepState._tEnter = stepState._tEnter || {}; stepState._tEnter[side] = tRel; }
+            } else if (stepState[side] === "flexed") {
+              const dwellOK = !stepState._tEnter?.[side] || ((tRel - stepState._tEnter[side]) * 1000 >= STEP_DWELL);
+              if (dwellOK && val >= STEP_EXT) { steps[side]++; stepState[side] = "idle"; stepState._tEnter[side] = null; updateStepEls(); }
+            }
+          };
+          upd("LEFT", angL, tRel);
+          upd("RIGHT", angR, tRel);
+
+
+          // 进度条（踏步 用 180°-角度 映射到 0~1）
+          const normPct = (v) => Number.isFinite(v) ? Math.max(0, Math.min(1, (180 - v) / 120)) : NaN;
+          const pctL_raw = normPct(dispL);
+          const pctR_raw = normPct(dispR);
+          // 阈值整体下调 10° 等价于 +10/120 到 pct
+          const ADJ = (10 / 120);
+          const pctL = Number.isFinite(pctL_raw) ? Math.max(0, Math.min(1, pctL_raw + ADJ)) : NaN;
+          const pctR = Number.isFinite(pctR_raw) ? Math.max(0, Math.min(1, pctR_raw + ADJ)) : NaN;
+
+          // 进度条显示：仍显示未调整前的实际进度（直观），文本留空
+          paintBar(barL, progL, { pct: Number.isFinite(pctL_raw) ? pctL_raw : 0, text: "", ok: false });
+          paintBar(barR, progR, { pct: Number.isFinite(pctR_raw) ? pctR_raw : 0, text: "", ok: false });
+          gapL.textContent = ""; gapR.textContent = "";
+          dirLTag.textContent = ""; dirRTag.textContent = "";
+
+          // 颜色播报：复用统一播报系统（NaN侧规则 + 取更大一侧），但踏步阈值整体下调10°（通过 pct 加偏置实现）
+          const Lp = Number.isFinite(pctL) ? { pct: pctL } : null;
+          const Rp = Number.isFinite(pctR) ? { pct: pctR } : null;
+          const nowSec2 = performance.now() / 1000;
+          updateColorAnnouncements(Lp, Rp, nowSec2);
+        } else {  // 1/2/3
+          if (mode === "LEFT" || mode === "BOTH") {
+            const m = getMapFor("LEFT", swapSides);
+            angL = computeAngle(bf, m, "LEFT", move).angle;
+          }
+          if (mode === "RIGHT" || mode === "BOTH") {
+            const m = getMapFor("RIGHT", swapSides);
+            angR = computeAngle(bf, m, "RIGHT", move).angle;
+          }
+
+          // --- Gate per side when move===extension and that arm isn't fully in frame ---
+          if (move === "extension") {
+            const lm2d = res?.landmarks?.[0] || null;
+            const gateL = (mode !== "RIGHT") && armInFrame("LEFT", lm2d);
+            const gateR = (mode !== "LEFT") && armInFrame("RIGHT", lm2d);
+            if (!gateL) { angL = NaN; }
+            if (!gateR) { angR = NaN; }
+          }
+          dispL = angL; dispR = angR;
+          angL_el.textContent = Number.isFinite(angL) ? angL.toFixed(1) + "°" : "--.-°";
+          angR_el.textContent = Number.isFinite(angR) ? angR.toFixed(1) + "°" : "--.-°";
+
+          // 确认最大角（持续≥1s）→ 会话容器
+          if (Number.isFinite(angL) && (mode === "LEFT" || mode === "BOTH")) {
+            if (angL >= minAngle && angL > maxL + 0.1) {
+              if (candL === null || angL > candL + 0.1) { candL = angL; tStartL = tRel; }
+              if (tRel - tStartL >= HOLD_SECONDS) {
+                maxL = candL; candL = null; tStartL = null;
+                sessionMax[move].LEFT = Math.max(sessionMax[move].LEFT, maxL);
+                refreshMaxLabelsForCurrentMove();
+              }
+            } else { candL = null; tStartL = null; }
+          }
+          if (Number.isFinite(angR) && (mode === "RIGHT" || mode === "BOTH")) {
+            if (angR >= minAngle && angR > maxR + 0.1) {
+              if (candR === null || angR > candR + 0.1) { candR = angR; tStartR = tRel; }
+              if (tRel - tStartR >= HOLD_SECONDS) {
+                maxR = candR; candR = null; tStartR = null;
+                sessionMax[move].RIGHT = Math.max(sessionMax[move].RIGHT, maxR);
+                refreshMaxLabelsForCurrentMove();
+              }
+            } else { candR = null; tStartR = null; }
+          }
+
+          // 进度条
+          let tgt = 0;
+          if (move === "flexion") tgt = Number(targetFlexInput.value) || 0;
+          if (move === "extension") tgt = Number(targetExtenInput.value) || 0;
+          if (move === "abduction") tgt = Number(targetAbdInput.value) || 0;
+          const Lp = sideProgress(dispL, tgt);
+          const Rp = sideProgress(dispR, tgt);
+          //记录次数
+          if ((mode === "LEFT" || mode === "BOTH") && Number.isFinite(dispL)) {
+            tickRep('LEFT', move, dispL, tgt, tRel);   // move 正好是 'flexion' | 'extension' | 'abduction'
+          }
+          if ((mode === "RIGHT" || mode === "BOTH") && Number.isFinite(dispR)) {
+            tickRep('RIGHT', move, dispR, tgt, tRel);
+          }
+
+          paintBar(barL, progL, Lp); paintBar(barR, progR, Rp);
+          gapL.textContent = Lp.text; gapR.textContent = Rp.text;
+          //未达标提示
+          const nowSec = performance.now() / 1000;
+          if (recOn) {
+            //优先级：红 > 黄 > 绿（同一帧只播一种） ---
+            const anyRed =
+              (Lp && Number.isFinite(Lp.pct) && Lp.pct < YELLOW_ENTER) ||
+              (Rp && Number.isFinite(Rp.pct) && Rp.pct < YELLOW_ENTER);
+
+            const anyYellow = !anyRed && (
+              (Lp && Number.isFinite(Lp.pct) && Lp.pct >= YELLOW_ENTER && Lp.pct < GREEN_ENTER) ||
+              (Rp && Number.isFinite(Rp.pct) && Rp.pct >= YELLOW_ENTER && Rp.pct < GREEN_ENTER)
+            );
+
+            if (anyRed) {
+              // 只处理红区合并播报
+              maybeGenericRed(Lp, Rp, tRel);
+            } else if (anyYellow) {
+              // 只处理黄区逐侧提醒
+              maybeRemind('LEFT', Lp, tRel);
+              maybeRemind('RIGHT', Rp, tRel);
+            } else {
+              // 只处理绿区表扬
+              maybePraise('LEFT', tRel);
+              maybePraise('RIGHT', tRel);
+            }
+
+
+            // 颜色播报（进入即播；红/黄每5秒重复；绿仅进入播一次）
+            const nowSec = performance.now() / 1000;
+            if (recOn) { updateColorAnnouncements(Lp, Rp, nowSec); }
+          }
+          dirLTag.textContent = ""; dirRTag.textContent = "";
+        }
+
+        // 曲线更新（UI）
+        const labels = chart.data.labels, dsL = chart.data.datasets[0], dsR = chart.data.datasets[1];
+        labels.push(tRel.toFixed(2));
+        dsL.data.push(Number.isFinite(dispL) ? dispL : null);
+        dsR.data.push(Number.isFinite(dispR) ? dispR : null);
+        while (labels.length > 1 && tRel - parseFloat(labels[0]) > windowSec) {
+          labels.shift(); dsL.data.shift(); dsR.data.shift();
+        }
+        chart.update("none");
+
+        // === 会话时间序列写入（仅记录状态下；踏步不写时序）===
+        if (recOn) {
+          const tSess = (performance.now() - recStart) / 1000;
+          if (move === "int_ext_rot") {
+            tsStore.int_ext_rot.push([+tSess.toFixed(2),
+            Number.isFinite(dispL) ? +dispL.toFixed(2) : null,
+            Number.isFinite(dispR) ? +dispR.toFixed(2) : null
+            ]);
+          } else if (move === "flexion" || move === "extension" || move === "abduction") {
+            tsStore[move].push([+tSess.toFixed(2),
+            Number.isFinite(dispL) ? +dispL.toFixed(2) : null,
+            Number.isFinite(dispR) ? +dispR.toFixed(2) : null
+            ]);
+          }
+        }
+      }
+
+      if (mirror) { ctx.restore(); }
+      if (lastTs > 0) fps_el.textContent = Math.round(1000 / (ts - lastTs));
+      lastTs = ts;
+      requestAnimationFrame(loop);
+    }
+  </script>
+  </body>
+
+</html>

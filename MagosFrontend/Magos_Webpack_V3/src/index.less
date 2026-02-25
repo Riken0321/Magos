@@ -1,0 +1,904 @@
+/* Body样式确保编辑器可以自适应宽度 */
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-width: 1000px;
+  overflow-x: auto;
+  position: relative;
+}
+
+button {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+  background: none;
+  border: none;
+  cursor: pointer;
+  background-repeat: no-repeat;
+}
+
+/* 编辑器主容器 */
+#Blocklyeditor {
+  width: 100%;
+  min-width: 1000px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: flex;
+}
+
+/* 顶部栏 */
+#TopBar {
+  align-self: stretch;
+  height: 49px;
+  padding-left: 21px;
+  padding-right: 736.41px;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 5px black solid;
+  display: inline-flex;
+}
+
+/* 顶部容器 */
+#TopContainer {
+  width: 460px;
+  height: 100%;
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/* 导航菜单 */
+#Navigation {
+  display: inline-flex;
+}
+
+#BtnConnectPanel,
+#BtnInterfacePanel,
+#BtnWindowPanel,
+#BtnExportPanel {
+  width: 80px;
+  height: 49px;
+  line-height: 49px;
+  font-weight: 1000;
+  text-align: center;
+  font-size: 22px;
+  user-select: none;
+  word-wrap: break-word;
+}
+
+/* Logo */
+#Logo {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 30px;
+}
+
+#MagosIcon {
+  height: 37px;
+  width: 26px;
+  background-image: url(../public/UI/MagosMasterIcon.svg);
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 20px;
+}
+
+#MagosMasterIcon {
+  height: 16px;
+  width: 135px;
+  background-image: url(../public/UI/MagosMaster.svg);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 中间内容区域 */
+#MiddleContent {
+  flex: 1;
+  min-height: calc(100vh - 128px);
+  align-self: stretch;
+  display: flex;
+  overflow: hidden;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/*工作区*/
+#blocklyDiv {
+  width: 100%;
+  height: calc(100vh - 128px);
+  flex-shrink: 0;
+  border-radius: 40px;
+}
+
+#CodePanel {
+  width: 0%;
+  height: calc(100vh - 140px);
+  flex-shrink: 0;
+  border-radius: 15px;
+  outline: 5px black solid;
+  outline-offset: -5px;
+  align-items: center;
+  justify-content: flex-start;
+  display: flex;
+  flex-direction: column;
+}
+
+#CodePanelTitle {
+  font-size: 20px;
+  font-weight: 1000;
+  margin: 20px 0px 20px 40px;
+  align-self: flex-start;
+  text-align: left;
+}
+
+#CodePanelText {
+  height: 85%;
+  width: 90%;
+  background-color: #fff;
+  flex-shrink: 0;
+  border-radius: 14px;
+  outline: 4.5px black solid;
+  outline-offset: -4.5px;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+}
+
+#CodeText {
+  font-size: 20px;
+  height: 100%;
+  width: 100%;
+  padding: 10px;
+  border-radius: 14px;
+  word-wrap: break-word;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+#CodeText::-webkit-scrollbar {
+  height: 8px;
+  /* 水平滚动条高度 */
+  width: 8px;
+  /* 垂直滚动条宽度 */
+  background: transparent;
+  /* 滚动条轨道背景透明 */
+}
+
+#CodeText::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 0;
+  margin: 5px 0;
+}
+
+#CodeText::-webkit-scrollbar-thumb {
+  background: rgba(200, 200, 200, 0.4);
+  /* 半透明灰色 */
+  border-radius: 5px;
+  /* 圆角 */
+  border: none;
+  /* 无边框 */
+  background-clip: padding-box;
+  /* 防止背景延伸到边框 */
+}
+
+#CodeText::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 200, 200, 0.7);
+  /* 悬停时更明显 */
+}
+
+#CodeText::-webkit-scrollbar-corner {
+  background: transparent;
+  /* 滚动条角落透明 */
+}
+
+/* 底部栏 */
+#BottomBar {
+  align-self: stretch;
+  height: 79px;
+  position: relative;
+  border-top: 5px black solid;
+}
+
+/* 小游戏容器 */
+#MinigameContainer {
+  left: 21px;
+  top: 22px;
+  position: absolute;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  display: inline-flex;
+}
+
+/* 游戏按钮组 */
+#Games {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 7px;
+  display: flex;
+}
+
+/* 游戏标题 */
+#GamesTitle {
+  font-size: 18px;
+  user-select: none;
+  margin-right: 20px;
+}
+
+#BtnSudoku {
+  width: 35px;
+  height: 35px;
+  margin-right: 10px;
+  border-radius: 8.75px;
+  outline: 1.6px black solid;
+  justify-content: center;
+  background-image: url(../public/UI/BtnSudokuGame.svg);
+}
+
+#BtnVisual {
+  width: 35px;
+  height: 35px;
+  border-radius: 8.75px;
+  outline: 1.6px black solid;
+  justify-content: center;
+  background-image: url(../public/UI/BtnVisualGame.svg);
+}
+
+/* 功能键 */
+#FunctionKeys {
+  height: 35px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 22px;
+  position: absolute;
+  background: white;
+  border-radius: 50px;
+  outline: 1px black solid;
+  outline-offset: -1px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 14px;
+  display: inline-flex;
+}
+
+#FunctionKeys button {
+  width: 31.5px;
+  height: 31.5px;
+  background-size: 28px 28px;
+  background-position: center;
+}
+
+#FunctionKeys button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 返回按钮 */
+#BtnReturn {
+  width: 31.5px;
+  height: 31.5px;
+  background-image: url(../public/UI/BtnReturn.svg);
+}
+
+/* 撤销按钮 */
+#BtnUndo {
+  width: 31.5px;
+  height: 31.5px;
+  background-image: url(../public/UI/BtnUndo.svg);
+}
+
+/* 播放按钮 */
+#BtnPlay {
+  width: 31.5px;
+  height: 31.5px;
+  background-image: url(../public/UI/BtnRun.svg);
+}
+
+/* 清除所有按钮 */
+#BtnClear {
+  width: 31.5px;
+  height: 31.5px;
+  background-image: url(../public/UI/BtnClear.svg);
+}
+
+/* 音乐图标 */
+#MusicIcon {
+  width: 35px;
+  height: 35px;
+  right: 21px;
+  top: 22px;
+  position: absolute;
+  background: white;
+  border-radius: 8.75px;
+  outline: 1.6px black solid;
+  outline-offset: -1.6px;
+  justify-content: center;
+  align-items: center;
+  display: inline-flex;
+}
+
+#BtnMusic {
+  width: 31.5px;
+  height: 31.5px;
+  background-image: url(../public/UI/BtnMusic.svg);
+}
+
+/* 连接面板 */
+#PanelConnect {
+  left: 225px;
+  top: 55px;
+  width: 400px;
+  padding: 5px;
+  background: white;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 16px;
+  outline: 5px black solid;
+  outline-offset: -5px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+}
+
+/* 界面面板 */
+#PanelInterface {
+  left: 300px;
+  top: 55px;
+  width: 400px;
+  padding: 5px;
+  background: white;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 16px;
+  outline: 5px black solid;
+  outline-offset: -5px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+}
+
+/* 窗口面板 */
+#PanelWindow {
+  left: 385px;
+  top: 55px;
+  width: 400px;
+  padding: 5px;
+  background: white;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 16px;
+  outline: 5px black solid;
+  outline-offset: -5px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+}
+
+/* 导出面板 */
+#PanelExpore {
+  left: 465px;
+  top: 55px;
+  width: 400px;
+  padding: 5px;
+  background: white;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 16px;
+  outline: 5px black solid;
+  outline-offset: -5px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+}
+
+#PanelMusic {
+  right: 100px;
+  bottom: 80px;
+  width: 400px;
+  padding: 5px;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 16px;
+  outline: 5px black solid;
+  outline-offset: -5px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+}
+
+/* 界面顶部 */
+#PanelConnectTop,
+#PanelInterfaceTop,
+#PanelExporeTop,
+#PanelWindowTop {
+  align-self: stretch;
+  padding-left: 21px;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  display: flex;
+  height: 48px;
+  font-size: 20px;
+}
+
+#PanelMusicTop {
+  align-self: stretch;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  height: 95px;
+  font-size: 20px;
+}
+
+/* 界面中间 */
+#PanelConnectMid,
+#PanelInterfaceMid,
+#PanelExporeMid,
+#PanelWindowMid {
+  align-self: stretch;
+  padding: 11px;
+  overflow: hidden;
+  border-top: 4.57px black solid;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  display: flex;
+}
+
+#PanelMusicMid {
+  align-self: stretch;
+  height: 350px;
+  padding: 11px;
+  background: #f9fafb;
+  overflow: hidden;
+  border-top: 4.57px black solid;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+}
+
+#panelMusicMid::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: transparent;
+}
+
+#panelMusicMid::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 0;
+  margin: 5px 0;
+}
+
+#PanelMusicBottom {
+  align-self: stretch;
+  height: 200px;
+  padding: 11px;
+  background: #f9fafb;
+  overflow: hidden;
+  border-top: 4.57px black solid;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+}
+
+/* 蓝牙小界面 */
+#PanelStateBLE {
+  width: 130px;
+  gap: 7px;
+  justify-content: flex-end;
+  align-items: center;
+  display: inline-flex;
+}
+
+/* 蓝牙状态灯 */
+#StateBLEIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+}
+
+/* 蓝牙状态文本 */
+#StateBLE {
+  color: #99a1af;
+  font-size: 16px;
+  font-family: Inter;
+  font-weight: 1000;
+  line-height: 24px;
+  word-wrap: break-word;
+}
+
+/* 布局中flex-start */
+#ContainerDevice {
+  align-self: stretch;
+  height: 40px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  padding-left: 10px;
+  padding-right: 10px;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: inline-flex;
+}
+
+/* 布局中flex-end */
+#ContainerScan {
+  align-self: stretch;
+  height: 30px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  padding-left: 10px;
+  padding-right: 10px;
+  border-bottom: 3px #e5e7eb solid;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  display: inline-flex;
+}
+
+/* 布局中between */
+#ContainerConnect,
+#ContainerDisConnect,
+#ContainerLanguage,
+#ContainerTheme,
+#ContainerExport,
+#ContainerCodePanel,
+#ContainerMusicPanel,
+#ContainerGamesPanel,
+#ContainerMusicTitle,
+#ContainerMusic,
+#ContainerMusicOption {
+  align-self: stretch;
+  height: 30px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  padding-left: 10px;
+  padding-right: 10px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  display: inline-flex;
+}
+
+#ParagraphScan,
+#ParagraphConnect,
+#ParagraphDisConnect,
+#ParagraphLanguage,
+#ParagraphTheme,
+#ParagraphExport,
+#ParagraphCodePanel,
+#ParagraphMusicPanel,
+#ParagraphGmaesPanel {
+  width: 260px;
+  height: 21px;
+  position: relative;
+}
+
+#ParagraphMusicTitle {
+  color: #7f5af0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+#ParagraphSongTitle {
+  font-size: 20px;
+  font-weight: 1000;
+}
+
+#ParagraphSongArtist {
+  color: #99a1af;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+#ParagraphMusicStrength {
+  width: 150px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+#ParagraphMusicOption {
+  align-items: center;
+  justify-content: center;
+}
+
+#MusicInput {
+  width: 350px;
+  height: 50px;
+  padding: 0px 10px 0px 10px;
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+#MusicStrengthIcon {
+  width: 21px;
+  height: 21px;
+  background-image: url(../public/UI/MusicStrength.svg);
+}
+
+#MusicStrength {
+  height: 15px;
+  width: 75px;
+  overflow: auto;
+  background: #fd0202;
+}
+
+#BtnMusicRight {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  outline: 4px black solid;
+  background-image: url(../public/UI/BtnMusicRight.svg);
+}
+
+#BtnMusicLeft {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  outline: 4px black solid;
+  background-image: url(../public/UI/BtnMusicLeft.svg);
+}
+
+#BtnMusicPlay {
+  width: 55.5px;
+  height: 55.5px;
+  background-image: url(../public/UI/BtnMusicPlay.svg);
+}
+
+#BtnMusicOrder {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  outline: 4px black solid;
+  background-image: url(../public/UI/BtnMusicOrder.svg);
+}
+
+#BtnDeviceScan {
+  width: 24px;
+  height: 24px;
+  background-image: url(../public/UI/BtnDeviceScan.svg);
+}
+
+#BtnDeviceSelectLeft,
+#BtnLanguageSelectLeft,
+#BtnThemeSelectLeft,
+#BtnCodePanelSelectLeft,
+#BtnMusicPanelSelectLeft,
+#BtnGamesPanelSelectLeft {
+  width: 23px;
+  height: 20px;
+  margin-left: 10px;
+  margin-right: 0px;
+  background-image: url(../public/UI/BtnDeviceSelectLeft.svg);
+}
+
+#BtnDeviceSelectRight,
+#BtnLanguageSelectRight,
+#BtnThemeSelectRight,
+#BtnCodePanelSelectRight,
+#BtnMusicPanelSelectRight,
+#BtnGamesPanelSelectRight {
+  width: 23px;
+  height: 20px;
+  margin-left: 10px;
+  margin-right: 10px;
+  background-image: url(../public/UI/BtnDeviceSelectRight.svg);
+}
+
+#BtnConnect,
+#BtnExport {
+  width: 150px;
+  height: 35px;
+  font-weight: 1000;
+  border-radius: 8.75px;
+  background-color: #fff;
+  outline: 2px black solid;
+  justify-content: center;
+  align-items: center;
+}
+
+#BtnDisConnect {
+  width: 150px;
+  height: 35px;
+  font-weight: 1000;
+  border-radius: 8.75px;
+  background-color: #ff6680;
+  outline: 2px black solid;
+  justify-content: center;
+  align-items: center;
+}
+
+#DeviceList,
+#LanguageList,
+#ThemeList,
+#CodePanelList,
+#MusicPanelList,
+#GamesPanelList {
+  font-size: 16px;
+  line-height: 30px;
+  font-weight: 1000;
+  width: 150px;
+  height: 30px;
+  text-align: center;
+}
+
+#MusicValue {
+  width: 370px;
+  height: 40px;
+  font-size: 18px;
+  line-height: 40px;
+  font-weight: 1000;
+  padding: 10px 10px 10px 10px;
+  border-bottom: 3px #e5e7eb solid;
+}
+
+.Dark {
+  #Blocklyeditor {
+    background: #2D353F;
+  }
+
+  #TopBar {
+    background-color: #7F5AF0;
+  }
+
+  #MiddleContent {
+    background-color: #2D353F;
+  }
+
+  #CodePanel {
+    background-color: #C5B2FF;
+  }
+
+  #CodeText {
+    background-color: #2D353F;
+    color: #fff;
+  }
+
+  #BottomBar {
+    background-color: #4A5565;
+  }
+
+  #PanelMusicTop,
+  #PanelInterfaceTop,
+  #PanelExporeTop,
+  #PanelConnectTop,
+  #PanelWindowTop {
+    background-color: #7F5AF0;
+  }
+
+  #PanelMusicMid,
+  #PanelInterfaceMid,
+  #PanelExporeMid,
+  #PanelConnectMid,
+  #PanelWindowMid,
+  #PanelMusicBottom {
+    background: #4C5867;
+  }
+}
+
+.Light {
+  #Blocklyeditor {
+    background: #f3f4f6;
+  }
+
+  #TopBar {
+    background-color: #B298FF;
+  }
+
+  #MiddleContent {
+    background-color: #F0EAFE;
+  }
+
+  #CodePanel {
+    background-color: #F0EAFE;
+  }
+
+  #CodeText {
+    background-color: #fff;
+    color: #2D353F;
+  }
+
+  #BottomBar {
+    background-color: #F9FAFB;
+  }
+
+  #PanelMusicTop,
+  #PanelInterfaceTop,
+  #PanelExporeTop,
+  #PanelConnectTop,
+  #PanelWindowTop {
+    background-color: #F0EAFE;
+  }
+
+  #PanelMusicMid,
+  #PanelInterfaceMid,
+  #PanelExporeMid,
+  #PanelConnectMid,
+  #PanelWindowMid,
+  #PanelMusicBottom {
+    background: #f9fafb;
+  }
+}
+
+// .Scan {
+//   #BtnDeviceScan {}
+// }
+
+// .Scaning {
+//   #BtnDeviceScan {}
+// }
+
+.Connect {
+  #StateBLEIcon {
+    background: #99a1af;
+  }
+
+  #StateBLE {
+    color: #99a1af;
+  }
+}
+
+.Connecting {
+  #StateBLEIcon {
+    background: #ffbf00;
+  }
+
+  #StateBLE {
+    color: #ffbf00;
+  }
+}
+
+.Connected {
+  #StateBLEIcon {
+    background: #22f10f;
+  }
+
+  #StateBLE {
+    color: #22f10f;
+  }
+}
+
+.Disconnecting {
+  #StateBLEIcon {
+    background: #ff0000;
+  }
+
+  #StateBLE {
+    color: #ff0000;
+  }
+}
+
+.Error {
+  #StateBLEIcon {
+    background: #ff00ff;
+  }
+
+  #StateBLE {
+    color: #ff00ff;
+  }
+}
