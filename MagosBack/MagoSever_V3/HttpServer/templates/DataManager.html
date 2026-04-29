@@ -31,6 +31,37 @@
             padding: 5px;
             margin-right: 10px;
         }
+
+        /* 遮罩层样式 */
+        #ota-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            color: white;
+        }
+        
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -53,9 +84,17 @@
 
         <button onclick="exportToExcel()">导出Excel</button>
 
+        <button onclick="checkCloudUpdate()" id="btn-ota-check">检查云端更新</button>
+
         <a href="{{request.host_url}}/to_habcam">
             <button>返回运动识别</button>
         </a>
+    </div>
+
+    <!-- OTA 遮罩层 -->
+    <div id="ota-overlay">
+        <div class="spinner"></div>
+        <div id="ota-status-text">正在下载最新固件...</div>
     </div>
 
     <table id="data-table">
@@ -87,6 +126,63 @@
     <script>
         // 用于存储从服务器获取的JSON数据
         let jsonData = [];
+
+        // GitHub Release Asset URL (示例，请替换为真实 URL)
+        // const FIRMWARE_URL = "https://github.com/Riken0321/Magos/releases/download/latest/firmware.bin";
+        // 临时使用一个假地址或让用户输入，这里演示写死一个测试地址
+        const FIRMWARE_URL = "https://raw.githubusercontent.com/Riken0321/Magos/main/README.md"; // 测试用
+
+        function checkCloudUpdate() {
+            const btn = document.getElementById('btn-ota-check');
+            const overlay = document.getElementById('ota-overlay');
+            const statusText = document.getElementById('ota-status-text');
+
+            // 1. UI 状态切换
+            btn.disabled = true;
+            btn.innerText = "Loading...";
+            overlay.style.display = 'flex';
+            statusText.innerText = "正在请求云端固件...";
+
+            // 2. 发起请求
+            fetch('/ota/cloud_sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url: FIRMWARE_URL
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || 'Network error'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.ok) {
+                    statusText.innerText = "下载成功！OTA 已在后台启动，请勿断开电源。";
+                    // 3秒后关闭遮罩，但按钮保持禁用防止重复点击
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                        btn.innerText = "更新中...";
+                        alert("OTA 更新已开始，请留意机器人状态指示灯。");
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || "Unknown error");
+                }
+            })
+            .catch(error => {
+                console.error("OTA Error:", error);
+                statusText.innerText = "更新失败: " + error.message;
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    btn.disabled = false;
+                    btn.innerText = "检查云端更新";
+                    alert("更新失败: " + error.message);
+                }, 2000);
+            });
+        }
 
         // 从服务器获取JSON数据并初始化
         function fetchData() {

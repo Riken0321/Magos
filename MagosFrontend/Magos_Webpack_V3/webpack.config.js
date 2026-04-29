@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
@@ -123,6 +124,14 @@ const config = {
 };
 
 module.exports = (env, argv) => {
+  const isDev = argv.mode === "development";
+  config.plugins.push(
+    new webpack.DefinePlugin({
+      __VIRTUAL_MAGOS_DEV__: JSON.stringify(isDev),
+      "process.env.NODE_ENV": JSON.stringify(argv.mode || "production"),
+    })
+  );
+
   if (argv.mode === "development") {
     // Set the output path to the `build` directory
     // so we don't clobber production builds.

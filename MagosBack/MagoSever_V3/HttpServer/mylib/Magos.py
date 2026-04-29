@@ -6,6 +6,8 @@ from HttpServer.mylib import robot_data, BLE, ESP_BLE
 import asyncio
 import json
 import os
+import re
+import sys
 
 # 获取当前脚本的绝对路径
 current_script_path = os.path.abspath(__file__)
@@ -153,7 +155,157 @@ class MagosRobot:
         
         print("[SYSTEM] 复位指令发送完毕，系统已回到 IDLE 状态。")
 
+    # 设置AI智能体ID
+    def set_ai_agent_id(self, id_str):
+        """发送设置AI智能体ID指令
+        协议: Header(AA 55) + OpCode(B5) + Target(10) + Length + ID_String + Footer(0D 0A)
+        """
+        if not self.BLE_worker:
+            print("[Magos] BLE Worker not initialized")
+            return False
+            
+        try:
+            # 转换ID字符串为UTF-8字节
+            id_bytes = id_str.encode('utf-8')
+            length = len(id_bytes)
+            
+            # 构建数据包
+            # Header: AA 55 (在 write_multiple 或 write_single 内部可能会处理，但这里是自定义协议帧)
+            # 注意：BLEWorker.write_single 通常封装了 AA 55 ... 0D 0A，
+            # 但这里是变长数据，可能需要直接构造完整帧或使用 write_multiple 的透传模式
+            # 查看 BLE.py 的 write_single 实现，它通常封装了 Header/Footer
+            
+            # 假设我们使用 write_single 发送自定义指令
+            # OpCode = 0xB5
+            # Data = Target(0x10) + Length + ID_Bytes
+            
+            target = 0x10
+            payload = bytearray([target, length]) + id_bytes
+            
+            # 调用 write_single (OpCode, Data)
+            # BLE.py 的 create_frame 会封装成: AA 55 Len OpCode Data Checksum 0D 0A (这是通用协议)
+            # 但根据用户描述的协议: AA 55 B5 10 Len ID... 0D 0A
+            # 这与 BLE.py 默认的 create_frame 格式可能不同。
+            # 如果 BLE.py 的 create_frame 是: AA 55 Len Data Checksum 0D 0A，那么 OpCode 只是 Data 的一部分。
+            # 让我们检查 BLE.py 的 create_frame 实现。
+            
+            # 假设直接调用底层 write 方法发送原始数据
+            # 构造完整帧
+            frame = bytearray([0xAA, 0x55, 0xB5, 0x10, length]) + id_bytes + bytearray([0x0D, 0x0A])
+            
+            # 使用 BLE_worker 的 raw_write 方法（如果存在）或者通过 write_characteristic 发送
+            # 这里假设 BLE_worker 有一个 send_raw_data 方法，如果没有，我们需要在 BLEWorker 中添加
+            # 或者复用现有的 write_single，如果它支持自定义 OpCode 且不强制特定格式
+            
+            # 暂时使用 BLE_worker.ble_handle.write_data(frame) 如果它是公开的
+            # 或者在 BLEWorker 中添加 send_custom_frame
+            
+            self.BLE_worker.send_custom_frame(frame)
+            print(f"[Magos] Sent AI Agent ID: {id_str}")
+            return True
+        except Exception as e:
+            print(f"[Magos] Failed to set AI Agent ID: {e}")
+            return False
+
     # 播放語言
+    def _music_manifest_paths(self):
+        paths = []
+
+        # Packaged mode: data.json is expected beside the executable.
+        if getattr(sys, "frozen", False):
+            exe_dir = os.path.dirname(sys.executable)
+            if exe_dir:
+                paths.append(os.path.join(exe_dir, "data.json"))
+
+        # Workspace runtime fallback: <repo_root>/magos_runtime/data.json
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(http_server_dir)))
+        paths.append(os.path.join(repo_root, "magos_runtime", "data.json"))
+
+        # Source mode path.
+        paths.append(os.path.join(http_server_dir, "static", "data.json"))
+
+        unique_paths = []
+        seen = set()
+        for path in paths:
+            norm = os.path.normcase(os.path.abspath(path))
+            if norm in seen:
+                continue
+            seen.add(norm)
+            unique_paths.append(path)
+        return unique_paths
+
+    def _load_music_manifest_entries(self):
+        for path in self._music_manifest_paths():
+            if not os.path.exists(path):
+                continue
+
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    payload = json.load(f)
+            except Exception:
+                continue
+
+            if isinstance(payload, dict):
+                music = payload.get("music", [])
+                if isinstance(music, list):
+                    return music
+            elif isinstance(payload, list):
+                return payload
+
+        return []
+
+    def _normalize_music_name(self, name):
+        raw = str(name or "").strip()
+        if not raw:
+            return ""
+        base = os.path.basename(raw)
+        stem, _ = os.path.splitext(base)
+        cleaned = re.sub(r"\s+", " ", (stem or base)).strip()
+        return cleaned
+
+    def _normalize_music_filename(self, name):
+        raw = str(name or "").strip()
+        if not raw:
+            return ""
+        base = os.path.basename(raw)
+        if not base:
+            return ""
+        if not base.lower().endswith(".mp3"):
+            base = f"{base}.mp3"
+        return base
+
+    def _resolve_background_music_selector(self, selector):
+        if isinstance(selector, (bytes, bytearray)):
+            selector = bytes(selector).decode("utf-8", errors="ignore")
+
+        raw = str(selector or "").strip()
+        if not raw:
+            raise ValueError("music name is empty")
+
+        # Name-core mode: always treat input as song name, never as numeric index.
+        target = self._normalize_music_name(raw).lower()
+        if not target:
+            raise ValueError("music name is empty")
+
+        for item in self._load_music_manifest_entries():
+            if isinstance(item, dict):
+                name = str(item.get("name") or "").strip()
+            elif isinstance(item, str):
+                name = item.strip()
+            else:
+                name = ""
+            if not name:
+                continue
+            if self._normalize_music_name(name).lower() == target:
+                resolved = self._normalize_music_filename(name)
+                if resolved:
+                    return resolved
+
+        resolved = self._normalize_music_filename(raw)
+        if not resolved:
+            raise ValueError("music name is empty")
+        return resolved
+
     def play_audio(self, voice):
         # previous_voice = '[h9][v9]'+voice
         previous_voice = voice
@@ -161,14 +313,22 @@ class MagosRobot:
         self.BLE_worker.write_single(0xB1, previous_voice.encode("utf-8"))
 
     # 播放背景音乐
-    def play_background_audio(self, index):
+    def play_background_audio(self, music_name):
         print("播放音乐")
-        self.BLE_worker.write_background_voice(index)
+        resolved_name = self._resolve_background_music_selector(music_name)
+        self.BLE_worker.write_background_voice(resolved_name)
 
     # 暂停背景音乐
     def stop_background_audio(self):
         print("关闭音乐")
         self.BLE_worker.write_background_voice(0xFF)
+
+    # 删除背景音乐（按文件名）
+    def delete_background_audio(self, music_name, timeout=3.0, wait_ack=True):
+        resolved_name = self._resolve_background_music_selector(music_name)
+        return self.BLE_worker.write_background_voice_delete(
+            resolved_name, timeout=timeout, wait_ack=wait_ack
+        )
 
     # 改变表情
     def change_emoji(self, index):
@@ -236,6 +396,8 @@ class MagosRobot:
             self.BLE_worker.write_single(
                 actual_index + self.BLE_worker.DEV_SERVO_BASE, data_bytes
             )  # 发送到BLE设备
+            self.robotData.update_single_angle(int(angle), actual_index)
+            return int(angle)
             # 增加舵机命令发送反馈
             # print(f"851已发送命令到舵机 {actual_index}，位置: {angle}")
         except Exception as e:
@@ -246,6 +408,7 @@ class MagosRobot:
             if self.communication_errors[actual_index] > self.max_errors:
                 self.working_servos[actual_index] = False
                 # print(f"舵机 {actual_index} 通信失败次数过多，已标记为不可用")
+            return None
 
     # 执行一个动作组
     def animations_start(self, animations_name):

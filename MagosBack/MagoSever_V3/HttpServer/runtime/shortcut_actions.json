@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "shortcut_actions": [
+    {
+      "id": "29a199447dbf4cbdb6c5b3c98c8bf253",
+      "name": "test",
+      "key_binding": {
+        "normalized": "ctrl+q",
+        "display": "Ctrl+Q",
+        "modifiers": [
+          "ctrl"
+        ],
+        "key": "q"
+      },
+      "actions": [
+        {
+          "type": "motion",
+          "label": "动作组: 八段锦",
+          "raw": "magos.animations_start(\"八段锦\")"
+        }
+      ],
+      "execution_code": "magos.animations_start(\"八段锦\")\n",
+      "created_at": "2026-03-31T23:56:44Z",
+      "updated_at": "2026-03-31T23:56:44Z"
+    }
+  ]
+}

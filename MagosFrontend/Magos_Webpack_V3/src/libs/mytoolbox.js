@@ -358,10 +358,25 @@ export const toolbox = {
           kind: "block",
           type: "magos_time",
         },
+        {
+          kind: "block",
+          type: "parallel_wait_all",
+        },
         // {
         //   kind: "block",
         //   type: "test001",
         // },
+      ],
+    },
+    {
+      kind: "category",
+      name: "Shortcut Actions",
+      colour: "#5C6BC0",
+      contents: [
+        {
+          kind: "block",
+          type: "shortcut_action_start",
+        },
       ],
     },
   ],

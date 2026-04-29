@@ -387,8 +387,13 @@ Blockly.Python.forBlock["play_audio"] = function (block, generator) {
   return `magos.play_audio("${_name}")\n`;
 };
 Blockly.Python.forBlock["play_background_audio"] = function (block, generator) {
-  const _index = block.getFieldValue("background_audio_index");
-  return `magos.play_background_audio(${_index})\n`;
+  const _name = String(block.getFieldValue("background_audio_index") ?? "");
+  const _escaped = _name
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n");
+  return `magos.play_background_audio("${_escaped}")\n`;
 };
 Blockly.Python.forBlock["stop_background_audio"] = function (block, generator) {
   return `magos.stop_background_audio()\n`;

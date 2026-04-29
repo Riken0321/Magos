@@ -1,0 +1,23 @@
+[
+  {
+    "action_name": "gate_test_action",
+    "duration": 1.0,
+    "image_path": "action_groups\\gate_test_action.png",
+    "joint_angles": [
+      392,
+      534,
+      572,
+      672,
+      453,
+      451,
+      540,
+      417,
+      591,
+      591
+    ],
+    "switch_data": 1,
+    "sync": false,
+    "type": "motion",
+    "voice": ""
+  }
+]
