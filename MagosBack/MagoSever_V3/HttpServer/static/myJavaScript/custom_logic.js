@@ -6,13 +6,57 @@ console.log("[Magos] custom_logic.js 已成功加载！");
 
 // 全局音乐列表缓存
 window.magosMusicList = [];
+window.magosCurrentSlot = "A";
+
+function normalizeSlot(raw) {
+    const text = String(raw || "").trim().toUpperCase();
+    return /^[A-Z]$/.test(text) ? text : "A";
+}
+
+function resolvePreferredSlotFromClient() {
+    try {
+        const fromQuery = new URLSearchParams(window.location.search).get("slot");
+        if (fromQuery) return normalizeSlot(fromQuery);
+    } catch (e) {}
+
+    const candidates = [
+        window.currentSlot,
+        window.magosSlot,
+        localStorage.getItem("magos_current_slot"),
+        sessionStorage.getItem("magos_current_slot"),
+    ];
+    for (const candidate of candidates) {
+        if (candidate) return normalizeSlot(candidate);
+    }
+    return "A";
+}
+
+async function refreshConnectedSlot() {
+    let nextSlot = resolvePreferredSlotFromClient();
+    try {
+        const resp = await fetch("/BLE_State");
+        if (resp.ok) {
+            const state = await resp.json();
+            if (state && Array.isArray(state.slots)) {
+                const connected = state.slots.find(item => item && item.is_connected);
+                if (connected && connected.slot) {
+                    nextSlot = normalizeSlot(connected.slot);
+                }
+            }
+        }
+    } catch (e) {}
+    window.magosCurrentSlot = nextSlot;
+    try { localStorage.setItem("magos_current_slot", nextSlot); } catch (e) {}
+    return nextSlot;
+}
 
 // ============ 1. 核心轮询逻辑 ============
 async function syncMusicList() {
     console.log("[Magos] 正在同步音乐列表...");
     try {
+        const slot = await refreshConnectedSlot();
         // 1. 获取后端数据
-        const response = await fetch('/api/music_data');
+        const response = await fetch(`/api/music_data?slot=${encodeURIComponent(slot)}`);
         if (!response.ok) throw new Error("Network response was not ok");
         
         const data = await response.json();
@@ -67,18 +111,18 @@ async function syncMusicList() {
             window.magosMusicList = newList;
             
             // 更新 UI 状态条
-            updateStatusDisplay(newList.length);
+            updateStatusDisplay(newList.length, slot);
 
             // 5. 触发 UI 刷新
             updateBlocklyUI();
         } else {
              // 即使列表没变，也要定期更新状态条，证明我们还在工作
-             updateStatusDisplay(newList.length);
+             updateStatusDisplay(newList.length, slot);
         }
 
     } catch (error) {
         console.error("[Magos] Polling error:", error);
-        updateStatusDisplay("Error");
+        updateStatusDisplay("Error", window.magosCurrentSlot || "A");
     }
 }
 
@@ -105,15 +149,16 @@ function createStatusDisplay() {
     return el;
 }
 
-function updateStatusDisplay(countOrError) {
+function updateStatusDisplay(countOrError, slot) {
     const el = document.getElementById('MagosMusicStatus');
+    const slotText = normalizeSlot(slot || window.magosCurrentSlot || "A");
     if (el) {
         if (countOrError === "Error") {
              el.style.color = '#ff0000';
-             el.innerText = 'Music: Connection Failed';
+             el.innerText = `Music(${slotText}): Connection Failed`;
         } else {
              el.style.color = '#00ff00';
-             el.innerText = `Music List: ${countOrError} Songs (Synced)`;
+             el.innerText = `Music(${slotText}): ${countOrError} Songs (Synced)`;
         }
     }
 }

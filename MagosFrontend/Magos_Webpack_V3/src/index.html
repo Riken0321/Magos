@@ -458,6 +458,11 @@
           <div class="action-servo-row"><label id="ActionLabelRightShoulder">右肩</label><input id="ActionServoRightShoulder" type="range" min="0" max="180" value="90"><span id="ActionServoRightShoulderValue">90</span></div>
           <div class="action-servo-row"><label id="ActionLabelRightArm">右臂</label><input id="ActionServoRightArm" type="range" min="0" max="180" value="90"><span id="ActionServoRightArmValue">90</span></div>
           <div class="action-servo-row"><label id="ActionLabelRightHand">右手</label><input id="ActionServoRightHand" type="range" min="0" max="180" value="90"><span id="ActionServoRightHandValue">90</span></div>
+          <div id="ActionGroupSlotRow">
+            <label id="ActionGroupSlotLabel" for="ActionGroupSlotSelect">目标机位</label>
+            <select id="ActionGroupSlotSelect"></select>
+            <div id="ActionGroupSlotHint">暂无已连接机位</div>
+          </div>
           <div id="ActionGroupNameRow">
             <label id="ActionGroupNameLabel" for="ActionGroupNameInput">命名</label>
             <input id="ActionGroupNameInput" type="text" maxlength="64" placeholder="请输入动作组名称">

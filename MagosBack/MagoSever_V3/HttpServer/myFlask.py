@@ -174,6 +174,8 @@ class FlaskApp:
     def __init__(self, _host="0.0.0.0", _port=5001, _debug=True, _threaded=True):
         # comment fixed
         self.LoadActionGroup()
+        # PyInstaller：优先在 exe 同目录落盘 data.json，避免 BLE 写入 _MEI 解压目录而 API 读到 exe 旁另一份空文件。
+        self._ensure_frozen_exe_music_manifest_seed()
 
         # region
         self.ROBOT_SLOTS = tuple("ABCDEF")
@@ -785,6 +787,16 @@ class FlaskApp:
                     "name": nm,
                     "display_name": disp,
                 }
+                try:
+                    # 连接成功后主动触发一次设备音乐清单同步，避免前端仅轮询本地清单导致“连上但看不到列表”。
+                    self._begin_music_sync_session(
+                        message="auto sync after connect",
+                        slot=slot,
+                    )
+                    worker.request_music_sync()
+                    print(f"[Music] Auto sync requested after connect (slot={slot})")
+                except Exception as sync_exc:
+                    print(f"[Music] Auto sync request failed after connect (slot={slot}): {sync_exc}")
                 return ["True"]
             print("连接失败")
             return ["False"]
@@ -1761,8 +1773,9 @@ class FlaskApp:
                 best_angle = angle
         return int(max(0, min(180, best_angle)))
 
-    def _try_refresh_servo_positions_once(self, timeout_ms=500) -> bool:
-        ble_worker = getattr(getattr(self, "magos", None), "BLE_worker", None)
+    def _try_refresh_servo_positions_once(self, mag=None, timeout_ms=500) -> bool:
+        target_mag = mag or getattr(self, "magos", None)
+        ble_worker = getattr(target_mag, "BLE_worker", None)
         if not ble_worker or not ble_worker.is_connected():
             return False
 
@@ -1803,9 +1816,9 @@ class FlaskApp:
             if logic_index < 0 or logic_index >= 10:
                 return
 
-            if self.magos and getattr(self.magos, "robotData", None):
+            if target_mag and getattr(target_mag, "robotData", None):
                 try:
-                    self.magos.robotData.update_single_angle(int(raw_value), logic_index)
+                    target_mag.robotData.update_single_angle(int(raw_value), logic_index)
                 except Exception as update_error:
                     print(f"ActionGroup servo cache update failed: {update_error}")
 
@@ -1830,8 +1843,14 @@ class FlaskApp:
 
         return bool(received)
 
-    def _build_action_group_pose(self):
+    def _build_action_group_pose(self, mag=None):
+        target_mag = mag or getattr(self, "magos", None)
         joint_angles = self._default_action_joint_angles()
+        if target_mag and getattr(target_mag, "robotData", None):
+            try:
+                joint_angles = list(getattr(target_mag.robotData, "angle", joint_angles))
+            except Exception:
+                joint_angles = self._default_action_joint_angles()
         pose = {}
         for mapping in self._action_group_servo_mapping():
             raw_index = mapping["raw_index"]
@@ -1841,21 +1860,40 @@ class FlaskApp:
             )
         return pose
 
+    def _resolve_action_group_slot_magos(self, raw_slot, default="A"):
+        slot = self._normalize_robot_slot(raw_slot, default)
+        mag = self._magos_by_slot.get(slot) if getattr(self, "_magos_by_slot", None) else None
+        if not mag:
+            mag = getattr(self, "magos", None)
+        return slot, mag
+
     def action_group_current_pose(self):
         try:
-            ble_worker = getattr(getattr(self, "magos", None), "BLE_worker", None)
+            slot = self._normalize_robot_slot(request.args.get("slot"), "A")
+            slot, mag = self._resolve_action_group_slot_magos(slot, "A")
+            ble_worker = getattr(mag, "BLE_worker", None)
             if not ble_worker or not ble_worker.is_connected():
-                return jsonify({"status": "failed", "message": "BLE not connected"}), 409
+                return (
+                    jsonify(
+                        {
+                            "status": "failed",
+                            "slot": slot,
+                            "message": f"BLE not connected for slot {slot}",
+                        }
+                    ),
+                    409,
+                )
 
             source = "cache"
-            if self._try_refresh_servo_positions_once(timeout_ms=500):
+            if self._try_refresh_servo_positions_once(mag=mag, timeout_ms=500):
                 source = "live"
 
             return jsonify(
                 {
                     "status": "success",
+                    "slot": slot,
                     "source": source,
-                    "servos": self._build_action_group_pose(),
+                    "servos": self._build_action_group_pose(mag=mag),
                 }
             )
         except Exception as e:
@@ -1864,13 +1902,23 @@ class FlaskApp:
 
     def action_group_preview_servo(self):
         try:
-            ble_worker = getattr(getattr(self, "magos", None), "BLE_worker", None)
-            if not ble_worker or not ble_worker.is_connected():
-                return jsonify({"status": "failed", "message": "BLE not connected"}), 409
-            if not self.magos:
-                return jsonify({"status": "failed", "message": "Magos not initialized"}), 500
-
             data = request.get_json(silent=True) or {}
+            slot, mag = self._resolve_action_group_slot_magos(data.get("slot"), "A")
+            ble_worker = getattr(mag, "BLE_worker", None)
+            if not ble_worker or not ble_worker.is_connected():
+                return (
+                    jsonify(
+                        {
+                            "status": "failed",
+                            "slot": slot,
+                            "message": f"BLE not connected for slot {slot}",
+                        }
+                    ),
+                    409,
+                )
+            if not mag:
+                return jsonify({"status": "failed", "slot": slot, "message": "Magos not initialized"}), 500
+
             servo_key = str(data.get("servo") or "").strip()
             mapping_lookup = {
                 item["payload_key"]: item for item in self._action_group_servo_mapping()
@@ -1885,13 +1933,14 @@ class FlaskApp:
                 return jsonify({"status": "failed", "message": "Invalid angle"}), 400
             target_angle = int(round(max(0.0, min(180.0, target_angle))))
 
-            sent_raw = self.magos.set_robot_server(mapping["command_index"], target_angle)
+            sent_raw = mag.set_robot_server(mapping["command_index"], target_angle)
             if sent_raw is None:
                 return jsonify({"status": "failed", "message": "Failed to send servo command"}), 500
 
             return jsonify(
                 {
                     "status": "success",
+                    "slot": slot,
                     "servo": servo_key,
                     "angle": target_angle,
                 }
@@ -1903,6 +1952,7 @@ class FlaskApp:
     def create_action_group(self):
         try:
             data = request.get_json(silent=True) or {}
+            slot, mag = self._resolve_action_group_slot_magos(data.get("slot"), "A")
             display_name = str(data.get("name") or "").strip()
             file_stem = self._sanitize_action_group_name(display_name)
             if not file_stem:
@@ -1916,9 +1966,18 @@ class FlaskApp:
             }
 
             # BLE guard: action group creation requires an active BLE connection.
-            ble_worker = getattr(getattr(self, "magos", None), "BLE_worker", None)
+            ble_worker = getattr(mag, "BLE_worker", None)
             if not ble_worker or not ble_worker.is_connected():
-                return jsonify({"status": "failed", "message": "BLE not connected"}), 409
+                return (
+                    jsonify(
+                        {
+                            "status": "failed",
+                            "slot": slot,
+                            "message": f"BLE not connected for slot {slot}",
+                        }
+                    ),
+                    409,
+                )
 
             servos = data.get("servos") or {}
             if not isinstance(servos, dict):
@@ -1979,6 +2038,7 @@ class FlaskApp:
             return jsonify(
                 {
                     "status": "success",
+                    "slot": slot,
                     "message": "Action group saved",
                     "name": action_name,
                     "filename": file_stem,
@@ -2846,6 +2906,17 @@ class FlaskApp:
                     count = int(payload.get("count") or 0)
                 except Exception:
                     count = 0
+            manifest_count = 0
+            manifest_path = self._music_data_json_path()
+            try:
+                manifest = self._load_music_manifest()
+                manifest_count = len(self._get_music_list_for_slot(manifest, resolved_slot))
+            except Exception as manifest_exc:
+                print(f"[Music] Manifest read failed after sync done: {manifest_exc}")
+            print(
+                f"[Music] Sync done slot={resolved_slot} event_count={max(0, count)} "
+                f"manifest_count={max(0, manifest_count)} path={manifest_path}"
+            )
             self._emit_music_sync_state(
                 sync_state="done",
                 message=f"device music sync done: {max(0, count)} songs",
@@ -2878,8 +2949,59 @@ class FlaskApp:
         self._refresh_music_sync_watchdog()
     # endregion
 
+    def _frozen_exe_music_manifest_path(self):
+        if not getattr(sys, "frozen", False):
+            return ""
+        exe_dir = os.path.dirname(sys.executable)
+        if not exe_dir:
+            return ""
+        return os.path.join(exe_dir, "data.json")
+
+    def _ensure_frozen_exe_music_manifest_seed(self):
+        """冻结运行时确保 exe 旁存在 data.json，使 BLE 写入与 HTTP 读取指向同一文件。"""
+        target = self._frozen_exe_music_manifest_path()
+        if not target or os.path.exists(target):
+            return
+        try:
+            seed = {"music": [], "music_by_slot": {}}
+            with open(target, "w", encoding="utf-8") as handle:
+                json.dump(seed, handle, ensure_ascii=False, indent=4)
+            print(f"[Music] Seeded exe-dir manifest: {target}")
+        except Exception as exc:
+            print(f"[Music] Failed to seed exe-dir manifest ({target}): {exc}")
+
+    def _music_manifest_paths(self):
+        paths = []
+        static_path = os.path.join(self.current_dir, "static", "data.json")
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(self.current_dir)))
+        runtime_path = os.path.join(repo_root, "magos_runtime", "data.json")
+
+        if getattr(sys, "frozen", False):
+            exe_dir = os.path.dirname(sys.executable)
+            if exe_dir:
+                paths.append(os.path.join(exe_dir, "data.json"))
+            paths.append(runtime_path)
+            paths.append(static_path)
+        else:
+            paths.append(static_path)
+            paths.append(runtime_path)
+
+        unique_paths = []
+        seen = set()
+        for candidate in paths:
+            norm = os.path.normcase(os.path.abspath(candidate))
+            if norm in seen:
+                continue
+            seen.add(norm)
+            unique_paths.append(candidate)
+        return unique_paths
+
     def _music_data_json_path(self):
-        return os.path.join(self.current_dir, "static", "data.json")
+        candidates = self._music_manifest_paths()
+        for path in candidates:
+            if os.path.exists(path):
+                return path
+        return candidates[0] if candidates else os.path.join(self.current_dir, "static", "data.json")
 
     def _music_slot_from_request(self, payload=None, default="A"):
         body = payload if isinstance(payload, dict) else {}
@@ -2975,6 +3097,7 @@ class FlaskApp:
         data_json_path = self._music_data_json_path()
         with self._music_manifest_lock:
             if not os.path.exists(data_json_path):
+                print(f"[Music] Manifest missing, using empty payload: {data_json_path}")
                 return self._ensure_manifest_slot_lists({"music": []})
 
             with open(data_json_path, "r", encoding="utf-8") as f:
@@ -2998,6 +3121,12 @@ class FlaskApp:
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(normalized, f, ensure_ascii=False, indent=4)
             os.replace(tmp_path, data_json_path)
+            total_count = 0
+            try:
+                total_count = len(normalized.get("music_by_slot", {}).get("A", []))
+            except Exception:
+                total_count = 0
+            print(f"[Music] Manifest saved: {data_json_path} (slotA={total_count})")
 
     def _remove_music_file_by_url(self, music_url: str):
         if not music_url:

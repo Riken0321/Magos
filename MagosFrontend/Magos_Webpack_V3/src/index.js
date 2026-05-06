@@ -187,6 +187,7 @@ let isSetAiAgentRequestInFlight = false;
 let isActionGroupSaveRequestInFlight = false;
 let isActionGroupPoseLoading = false;
 let isActionGroupPreviewAllowed = true;
+let selectedActionGroupSlot = "A";
 let actionGroupUserItems = [];
 let actionGroupDeleteRequestInFlightId = "";
 let actionGroupUserListLoading = false;
@@ -371,6 +372,11 @@ const language = {
     OtaSlotHintNoConnected: "暂无已连接机位",
     OtaSlotHintSelectedFmt: "将更新机位 {slot}",
     OtaSlotRequired: "请先选择更新机位",
+    ActionGroupSlotLabel: "目标机位",
+    ActionGroupSlotSelectPlaceholder: "请选择机位",
+    ActionGroupSlotHintNoConnected: "暂无已连接机位",
+    ActionGroupSlotHintSelectedFmt: "将下发到机位 {slot}",
+    ActionGroupSlotRequired: "请先选择已连接机位",
     ActionGroupLoadingPose: "正在读取当前姿态...",
     ActionGroupPoseFallbackCache: "未获取到实时姿态，已使用缓存值。",
     ActionGroupPreviewSendFailed: "实时预览发送失败，请检查连接。",
@@ -559,6 +565,11 @@ const language = {
     OtaSlotHintNoConnected: "暫無已連接機位",
     OtaSlotHintSelectedFmt: "將更新機位 {slot}",
     OtaSlotRequired: "請先選擇更新機位",
+    ActionGroupSlotLabel: "目標機位",
+    ActionGroupSlotSelectPlaceholder: "請選擇機位",
+    ActionGroupSlotHintNoConnected: "暫無已連接機位",
+    ActionGroupSlotHintSelectedFmt: "將下發到機位 {slot}",
+    ActionGroupSlotRequired: "請先選擇已連接機位",
     ActionGroupLoadingPose: "正在讀取當前姿態...",
     ActionGroupPoseFallbackCache: "未獲取到實時姿態，已使用緩存值。",
     ActionGroupPreviewSendFailed: "實時預覽發送失敗，請檢查連接。",
@@ -747,6 +758,11 @@ const language = {
     OtaSlotHintNoConnected: "No connected slots",
     OtaSlotHintSelectedFmt: "Will update slot {slot}",
     OtaSlotRequired: "Please select an update slot first",
+    ActionGroupSlotLabel: "Target slot",
+    ActionGroupSlotSelectPlaceholder: "Please select a slot",
+    ActionGroupSlotHintNoConnected: "No connected slots",
+    ActionGroupSlotHintSelectedFmt: "Will dispatch to slot {slot}",
+    ActionGroupSlotRequired: "Please select a connected slot first",
     ActionGroupLoadingPose: "Loading current pose...",
     ActionGroupPoseFallbackCache: "Live pose unavailable, using cached values.",
     ActionGroupPreviewSendFailed: "Realtime preview failed. Please check the connection.",
@@ -1045,6 +1061,9 @@ const ActionGroupTitle = document.getElementById("ActionGroupTitle");
 const ActionGroupBody = document.getElementById("ActionGroupBody");
 const BtnActionGroupClose = document.getElementById("BtnActionGroupClose");
 const BtnActionGroupConfirm = document.getElementById("BtnActionGroupConfirm");
+const ActionGroupSlotLabel = document.getElementById("ActionGroupSlotLabel");
+const ActionGroupSlotSelect = document.getElementById("ActionGroupSlotSelect");
+const ActionGroupSlotHint = document.getElementById("ActionGroupSlotHint");
 const ActionGroupNameLabel = document.getElementById("ActionGroupNameLabel");
 const ActionGroupNameInput = document.getElementById("ActionGroupNameInput");
 const ActionGroupUserListTitle = document.getElementById("ActionGroupUserListTitle");
@@ -3647,6 +3666,10 @@ async function syncBLEStatusWithBackend() {
         updateBLEState("connect");
         updateConnectedDeviceUI();
       }
+      if (ActionGroupModal && ActionGroupModal.style.display === "block") {
+        refreshActionGroupSlotOptions(getActionGroupSelectedSlot());
+        refreshActionGroupConfirmDisabled();
+      }
       const firstConnRow = data.slots.find(
         (r) =>
           r.is_connected === true ||
@@ -3696,6 +3719,10 @@ async function syncBLEStatusWithBackend() {
         ConnectedDevice = "";
         updateBLEState("connect");
         updateConnectedDeviceUI();
+    }
+    if (ActionGroupModal && ActionGroupModal.style.display === "block") {
+      refreshActionGroupSlotOptions(getActionGroupSelectedSlot());
+      refreshActionGroupConfirmDisabled();
     }
     updateAboutFromStatus(data);
     handleBleConnectionTransition(isConnected);
@@ -3941,9 +3968,9 @@ function isMagosDemoMode() {
 
 function ensureMagosDemoDefaultEnabled() {
   try {
-    if (localStorage.getItem(MAGOS_DEMO_KEY) == null) {
-      localStorage.setItem(MAGOS_DEMO_KEY, "true");
-    }
+    // Default to real-device mode to avoid masking synced music list.
+    // Also override stale demo flags from previous preview sessions.
+    localStorage.setItem(MAGOS_DEMO_KEY, "false");
   } catch (_err) {
     // ignore localStorage failures
   }
@@ -4694,6 +4721,7 @@ function startMusicDeviceSyncPolling(sessionId = "") {
 
     removeMusicSyncHint();
     stopMusicDeviceSyncPolling();
+    await syncMusicList({ force: true });
   };
 
   runPoll();
@@ -4729,6 +4757,13 @@ async function requestDeviceMusicSync() {
 
 function handleBleConnectionTransition(isConnected) {
   const nowConnected = !!isConnected;
+  if (nowConnected && isMagosDemoMode()) {
+    try {
+      localStorage.setItem(MAGOS_DEMO_KEY, "false");
+    } catch (_err) {
+      // ignore localStorage failures
+    }
+  }
   if (nowConnected && !wasBleConnected) {
     requestDeviceMusicSync();
   }
@@ -4772,7 +4807,11 @@ async function syncMusicList(options = {}) {
         headers: { "Cache-Control": "no-cache" },
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok || payload.code !== 200 || !Array.isArray(payload.music)) {
+      if (
+        !response.ok ||
+        Number(payload.code) !== 200 ||
+        !Array.isArray(payload.music)
+      ) {
         throw new Error(payload.msg || `HTTP ${response.status}`);
       }
 
@@ -4824,6 +4863,22 @@ async function syncMusicList(options = {}) {
     musicSyncInFlight = null;
   });
   return musicSyncInFlight;
+}
+
+const MUSIC_INITIAL_HYDRATE_MAX_ATTEMPTS = 40;
+const MUSIC_INITIAL_HYDRATE_INTERVAL_MS = 400;
+
+function startInitialMusicListHydration() {
+  let attempts = 0;
+  const tick = async () => {
+    attempts += 1;
+    const result = await syncMusicList({ force: true });
+    const syncState = String((result && result.syncState) || "idle").toLowerCase();
+    if (syncState === "syncing" && attempts < MUSIC_INITIAL_HYDRATE_MAX_ATTEMPTS) {
+      setTimeout(tick, MUSIC_INITIAL_HYDRATE_INTERVAL_MS);
+    }
+  };
+  void tick();
 }
 
 async function syncMusicListOnDone(reason = "") {
@@ -6839,6 +6894,71 @@ function getActionGroupLangData() {
   return language[currentLanguage] || language.en;
 }
 
+function getConnectedActionGroupSlots() {
+  return activeRobotSlotIds
+    .map((slotId) => {
+      const slotState = robotSlots.get(slotId);
+      if (!slotState || slotState.status !== "connected") return null;
+      const deviceName = String(slotState.connectedDevice || "").trim();
+      return {
+        slot: slotId,
+        label: deviceName ? `${slotId} · ${deviceName}` : slotId,
+      };
+    })
+    .filter(Boolean);
+}
+
+function refreshActionGroupSlotOptions(preferredSlot = "") {
+  if (!ActionGroupSlotSelect || !ActionGroupSlotHint) return;
+  const langData = getActionGroupLangData();
+  const options = getConnectedActionGroupSlots();
+  const fallbackSlot = String(preferredSlot || selectedActionGroupSlot || "").trim().toUpperCase();
+  const hasFallback = options.some((item) => item.slot === fallbackSlot);
+  const nextSlot = hasFallback ? fallbackSlot : options[0]?.slot || "";
+  selectedActionGroupSlot = nextSlot || "";
+
+  ActionGroupSlotSelect.innerHTML = "";
+  if (!options.length) {
+    const placeholder = new Option(
+      langData.ActionGroupSlotSelectPlaceholder ||
+        language.en.ActionGroupSlotSelectPlaceholder,
+      ""
+    );
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    ActionGroupSlotSelect.add(placeholder);
+    ActionGroupSlotSelect.disabled = true;
+    ActionGroupSlotHint.textContent =
+      langData.ActionGroupSlotHintNoConnected ||
+      language.en.ActionGroupSlotHintNoConnected;
+    isActionGroupPreviewAllowed = false;
+    return;
+  }
+
+  options.forEach((item) => {
+    const opt = new Option(item.label, item.slot);
+    if (item.slot === nextSlot) opt.selected = true;
+    ActionGroupSlotSelect.add(opt);
+  });
+  if (!isActionGroupPoseLoading) {
+    isActionGroupPreviewAllowed = true;
+  }
+  ActionGroupSlotSelect.disabled = false;
+  const selectedFmt =
+    langData.ActionGroupSlotHintSelectedFmt ||
+    language.en.ActionGroupSlotHintSelectedFmt;
+  ActionGroupSlotHint.textContent = String(selectedFmt).replace("{slot}", nextSlot);
+}
+
+function getActionGroupSelectedSlot() {
+  const fromUi = String(ActionGroupSlotSelect?.value || "").trim().toUpperCase();
+  if (fromUi) {
+    selectedActionGroupSlot = fromUi;
+    return fromUi;
+  }
+  return String(selectedActionGroupSlot || "").trim().toUpperCase();
+}
+
 function setActionGroupStaticTexts() {
   const langData = getActionGroupLangData();
   setInnerTextIf(
@@ -6854,6 +6974,10 @@ function setActionGroupStaticTexts() {
     langData.ActionGroupNameLabel || language.en.ActionGroupNameLabel
   );
   setInnerTextIf(
+    ActionGroupSlotLabel,
+    langData.ActionGroupSlotLabel || language.en.ActionGroupSlotLabel
+  );
+  setInnerTextIf(
     BtnActionGroupConfirm,
     langData.BtnActionGroupConfirm || language.en.BtnActionGroupConfirm
   );
@@ -6866,6 +6990,7 @@ function setActionGroupStaticTexts() {
     "placeholder",
     langData.ActionGroupNamePlaceholder || language.en.ActionGroupNamePlaceholder
   );
+  refreshActionGroupSlotOptions();
 }
 
 function renderActionGroupUserList() {
@@ -7054,10 +7179,12 @@ function setActionGroupInputsDisabled(disabled) {
 
 function refreshActionGroupConfirmDisabled() {
   if (!BtnActionGroupConfirm) return;
+  const hasSlot = Boolean(getActionGroupSelectedSlot());
   BtnActionGroupConfirm.disabled =
     isActionGroupSaveRequestInFlight ||
     isActionGroupPoseLoading ||
-    !isActionGroupPreviewAllowed;
+    !isActionGroupPreviewAllowed ||
+    !hasSlot;
 }
 
 function resetActionGroupPreviewState() {
@@ -7125,13 +7252,18 @@ async function flushActionGroupPreviewMoves() {
 
   const [servoKey, angle] = entries[entries.length - 1];
   actionGroupPreviewPendingByServo.delete(servoKey);
+  const slot = getActionGroupSelectedSlot();
+  if (!slot) {
+    markActionGroupPreviewDisconnected();
+    return;
+  }
 
   actionGroupPreviewSending = true;
   try {
     const res = await fetch("/api/action_group/preview_servo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ servo: servoKey, angle }),
+      body: JSON.stringify({ slot, servo: servoKey, angle }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.status !== "success") {
@@ -7204,7 +7336,9 @@ function applyActionGroupPoseToUi(servos) {
 }
 
 async function fetchActionGroupCurrentPose() {
-  const response = await fetch("/api/action_group/current_pose", { method: "GET" });
+  const slot = getActionGroupSelectedSlot();
+  const query = slot ? `?slot=${encodeURIComponent(slot)}` : "";
+  const response = await fetch(`/api/action_group/current_pose${query}`, { method: "GET" });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload.status !== "success") {
     const error = new Error(payload.message || `HTTP ${response.status}`);
@@ -7224,6 +7358,7 @@ async function openActionGroupModal() {
 
   setActionGroupStaticTexts();
   resetActionGroupPreviewState();
+  refreshActionGroupSlotOptions();
   clearActionGroupHint();
   void loadUserActionGroups();
 
@@ -7239,6 +7374,16 @@ async function openActionGroupModal() {
   ActionGroupModal.style.display = "block";
 
   const langData = getActionGroupLangData();
+  const slot = getActionGroupSelectedSlot();
+  if (!slot) {
+    markActionGroupPreviewDisconnected();
+    showActionGroupHint(
+      langData.ActionGroupSlotHintNoConnected ||
+        language.en.ActionGroupSlotHintNoConnected,
+      "error"
+    );
+    return;
+  }
   isActionGroupPoseLoading = true;
   setActionGroupInputsDisabled(true);
   refreshActionGroupConfirmDisabled();
@@ -7322,6 +7467,7 @@ async function ensureBleConnectedForActionGroup() {
 
 function buildActionGroupPayload() {
   return {
+    slot: getActionGroupSelectedSlot(),
     name: (ActionGroupNameInput?.value || "").trim(),
     duration: 1.0,
     servos: {
@@ -7349,6 +7495,10 @@ async function saveActionGroup() {
   if (!bleConnected) return;
 
   const payload = buildActionGroupPayload();
+  if (!payload.slot) {
+    alert(langData.ActionGroupSlotRequired || language.en.ActionGroupSlotRequired);
+    return;
+  }
   if (!payload.name) {
     alert(langData.ActionGroupNameRequired || language.en.ActionGroupNameRequired);
     return;
@@ -7502,6 +7652,44 @@ if (ActionGroupMask) {
 }
 if (BtnActionGroupConfirm) {
   BtnActionGroupConfirm.addEventListener("click", saveActionGroup);
+}
+if (ActionGroupSlotSelect) {
+  ActionGroupSlotSelect.addEventListener("change", async () => {
+    selectedActionGroupSlot = String(ActionGroupSlotSelect.value || "")
+      .trim()
+      .toUpperCase();
+    refreshActionGroupSlotOptions(selectedActionGroupSlot);
+    refreshActionGroupConfirmDisabled();
+    if (!ActionGroupModal || ActionGroupModal.style.display !== "block") return;
+    const langData = getActionGroupLangData();
+    isActionGroupPoseLoading = true;
+    setActionGroupInputsDisabled(true);
+    refreshActionGroupConfirmDisabled();
+    showActionGroupHint(
+      langData.ActionGroupLoadingPose || language.en.ActionGroupLoadingPose,
+      "info"
+    );
+    try {
+      const posePayload = await fetchActionGroupCurrentPose();
+      applyActionGroupPoseToUi(posePayload.servos || {});
+      clearActionGroupHint();
+      isActionGroupPreviewAllowed = true;
+    } catch (error) {
+      if (Number(error?.status) === 409) {
+        markActionGroupPreviewDisconnected();
+      } else {
+        showActionGroupHint(
+          langData.ActionGroupPoseFallbackCache ||
+            language.en.ActionGroupPoseFallbackCache,
+          "warn"
+        );
+      }
+    } finally {
+      isActionGroupPoseLoading = false;
+      setActionGroupInputsDisabled(!isActionGroupPreviewAllowed);
+      refreshActionGroupConfirmDisabled();
+    }
+  });
 }
 if (ActionGroupNameInput) {
   ActionGroupNameInput.addEventListener("keydown", (event) => {
@@ -8491,12 +8679,12 @@ if (isMagosDemoMode()) {
   changeMusicPanel();
 }
 // [MAGOS_DEMO_END]
+songs = getAllSongs();
 displaySongs(searchSongs(""));
-syncMusicList();
+startInitialMusicListHydration();
 changeTheme();
 // changeLang(); // Moved up
 startBatteryStatusPolling();
-songs = getAllSongs();
 initShortcutActionsFeature();
 refreshLicenseStatus({ silent: true });
 

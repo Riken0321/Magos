@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 import shutil
 import threading
+import sys
 
 # ====== 璁惧閰嶇疆 ======
 # DEVICE_ADDR = "A0:DD:6C:86:47:C2"  # 鏇挎崲涓轰綘鐨凟SP32C3 MAC鍦板潃
@@ -37,8 +38,30 @@ class MusicManager:
         
         # Fallback path if not provided
         if not self.data_json_path:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self.data_json_path = os.path.join(base_dir, "static", "data.json")
+            self.data_json_path = self._default_manifest_path()
+
+    def _default_manifest_path(self):
+        http_server_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        static_path = os.path.join(http_server_dir, "static", "data.json")
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(http_server_dir)))
+        runtime_path = os.path.join(repo_root, "magos_runtime", "data.json")
+
+        candidates = []
+        if getattr(sys, "frozen", False):
+            # 与 Flask `_music_manifest_paths` 顺序一致；exe 旁文件由服务端启动时优先创建，避免写入 _MEI 临时目录。
+            exe_dir = os.path.dirname(sys.executable)
+            if exe_dir:
+                candidates.append(os.path.join(exe_dir, "data.json"))
+            candidates.append(runtime_path)
+            candidates.append(static_path)
+        else:
+            candidates.append(static_path)
+            candidates.append(runtime_path)
+
+        for path in candidates:
+            if os.path.exists(path):
+                return path
+        return candidates[0] if candidates else static_path
 
     def start_sync(self):
         """Reset for new sync session"""
@@ -369,6 +392,10 @@ class BLEController:
             self._music_sync_started_at = time.time()
             self.music_manager.start_sync()
             self._schedule_music_sync_finalize_locked(generation)
+        print(
+            f"[Music] Sync session started slot={self.slot_id} generation={generation} "
+            f"path={self.music_manager.data_json_path}"
+        )
 
         self._notify_music_update(
             "music_sync_start",
@@ -419,7 +446,16 @@ class BLEController:
             try:
                 self.music_manager.save_to_json()
                 snapshot = self.music_manager.snapshot()
+                duration_ms = int(max(0.0, (time.time() - self._music_sync_started_at) * 1000))
+                print(
+                    f"[Music] Sync finalized slot={self.slot_id} generation={generation} "
+                    f"reason={reason} count={len(snapshot)} duration_ms={duration_ms}"
+                )
             except Exception as sync_exc:
+                print(
+                    f"[Music] Sync finalize failed slot={self.slot_id} generation={generation} "
+                    f"reason={reason} error={sync_exc}"
+                )
                 self._notify_music_update(
                     "music_sync_error",
                     {
